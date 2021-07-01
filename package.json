@@ -26,6 +26,7 @@
     "precommit": "npm run build && npm run test",
     "prepare": "configure ./src/utils/config.ts && yarn build",
     "pretest": "npm run build",
+    "start:api": "node -r sucrase/register src/indexApi.ts",
     "test": "npm run lint && mocha testsrc/**/*"
   },
   "dependencies": {
