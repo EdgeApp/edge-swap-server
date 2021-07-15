@@ -1,3 +1,5 @@
+import { asNumber, asString } from 'cleaners'
+
 export interface ErrorResponse {
   message: string
   errorType: string
@@ -12,8 +14,8 @@ export const makeErrorResponse = (
   message: string = defaultErrorMessage
 ): ErrorResponse => {
   return {
-    message: message,
-    errorType: errorType,
-    errorCode: errorCode
+    message: asString(message),
+    errorType: asString(errorType),
+    errorCode: asNumber(errorCode)
   }
 }
