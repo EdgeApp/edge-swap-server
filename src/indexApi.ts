@@ -1,7 +1,6 @@
 // BASE SETUP
 // =============================================================================
 
-import { asObject, asOptional, asString } from 'cleaners'
 import cluster from 'cluster'
 import { formatISO } from 'date-fns'
 import { forkChildren, rebuildCouch } from 'edge-server-tools'
@@ -9,33 +8,14 @@ import { forkChildren, rebuildCouch } from 'edge-server-tools'
 import { config } from './utils/config'
 import { couchSchema, minAmtDbPrefix } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
+import { findMinimum } from './utils/getMinimum'
 import { mockPlugins } from './utils/mockPlugins'
+import { checkQueryString, fetchSameKeyDocs } from './utils/utils'
 
 const express = require('express')
 const http = require('http')
 const nano = require('nano')
 const promisify = require('promisify-node')
-
-const asFulfilledPromise = asObject({
-  status: asString,
-  value: asObject({
-    _id: asString,
-    _rev: asOptional(asString),
-    data: asObject({ minAmount: asString })
-  })
-})
-
-const GetMinimumParamError: ErrorResponse = makeErrorResponse(
-  'bad_request',
-  400,
-  'Missing query params'
-)
-
-const CurrencyPairDataError: ErrorResponse = makeErrorResponse(
-  'not_found',
-  404,
-  'Data for currencyPair not found'
-)
 
 const RouteError: ErrorResponse = makeErrorResponse(
   'bad_query',
@@ -49,9 +29,9 @@ const app = express()
 // Nano for CouchDB
 // =============================================================================
 const nanoDb = nano(config.dbFullpath)
-const swapMinAmts = mockPlugins.map(plugin => {
-  const pluginMinAmt = nanoDb.db.use(minAmtDbPrefix + plugin.pluginName)
-  return promisify(pluginMinAmt)
+const minAmtDocScopeArr = mockPlugins.map(plugin => {
+  const pluginMinAmtDocScope = nanoDb.db.use(minAmtDbPrefix + plugin.pluginName)
+  return promisify(pluginMinAmtDocScope)
 })
 
 // ROUTES FOR OUR API
@@ -64,49 +44,31 @@ router.use(function (req, res, next) {
 })
 
 router.get('/getMinimum/', async function (req, res, next) {
-  const currencyPair: string = req.query.currencyPair // Param of 'currencyPair' in URI
-  if (currencyPair === undefined) {
-    return next(GetMinimumParamError)
+  const currencyPairResult = checkQueryString(req.query.currencyPair) // Param of 'currencyPair' in URI
+  if (typeof currencyPairResult !== 'string') {
+    return next(currencyPairResult) // currencyPairResult is equal to ParamError
   }
   const currentUTCDate: string = formatISO(new Date(), {
     representation: 'date'
   }) // Variable for current UTC date using date-fns
+
+  const minAmtDocKey = currentUTCDate + ':' + currencyPairResult
+
   try {
-    // Array of promises to get the latest documents for the min amount data per plugin
-    const docPromisesArr = swapMinAmts.map(async pluginDb => {
-      return pluginDb.get(currentUTCDate + ':' + currencyPair)
-    })
-    // Capture the result of each promise, including whether it was fulfilled or rejected
-    const docs = await Promise.allSettled(docPromisesArr)
+    const minAmtDocs = await fetchSameKeyDocs(minAmtDocKey, minAmtDocScopeArr)
+    const minAmtResult = findMinimum(minAmtDocs)
 
-    // Use 'reduce' to go through settled promises and find the lowest minAmount amongst the plugins
-    const minAmountFloat = docs.reduce((currentMinAmount, doc) => {
-      try {
-        const cleanedDoc = asFulfilledPromise(doc) // Clean doc for a fulfilled promise
-        const pluginMinAmount = parseFloat(cleanedDoc.value.data.minAmount) // Grab the plugin's minAmount for the currencyPair
-        // If the plugin's minAmount is lower than currentMinAmount, update currentMinAmount
-        return pluginMinAmount < currentMinAmount
-          ? pluginMinAmount
-          : currentMinAmount
-      } catch {
-        // Promise was rejected or fulfilled promise returned invalid data
-        return currentMinAmount
-      }
-    }, Infinity) // Start currentMinAmount at Infinity
-
-    // Check if minAmountFloat is still Infinity
-    if (!isFinite(minAmountFloat)) {
-      // No data could be found in the database, return next with the error
-      return next(CurrencyPairDataError)
+    if (typeof minAmtResult !== 'string') {
+      return next(minAmtResult) // minAmtResult is equal to CurrencyPairDataError
     }
 
     res.json({
-      currencyPair,
+      currencyPair: currencyPairResult,
       date: currentUTCDate,
-      minAmount: minAmountFloat.toString()
+      minAmount: minAmtResult
     })
   } catch (e) {
-    console.log(e)
+    return next(e)
   }
 })
 
