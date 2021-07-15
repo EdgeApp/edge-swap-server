@@ -20,14 +20,14 @@
     "clean": "rimraf lib",
     "demo": "parcel serve src/index.html --open",
     "fix": "npm run lint -- --fix",
-    "go": "yarn build && yarn start",
+    "go": "npm run build && npm run start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "precommit": "npm run build && npm run test",
-    "prepare": "configure ./src/utils/config.ts && yarn build",
-    "pretest": "npm run build",
+    "prepare": "configure ./src/utils/config.ts && npm run build",
+    "pretest": "npm run lint",
     "start:api": "node -r sucrase/register src/indexApi.ts",
-    "test": "npm run lint && mocha testsrc/**/*"
+    "test": "mocha -r sucrase/register test/**/*.test.js"
   },
   "dependencies": {
     "@types/node": "^14.0.22",
