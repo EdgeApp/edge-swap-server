@@ -1,10 +1,11 @@
 import { setupEngine } from './utils/setupEngine'
+import { swapQuotes } from './utils/swapQuotes'
 
 async function main(): Promise<void> {
   const { account, currencyWallets } = await setupEngine()
+  const quotes = await swapQuotes(account, currencyWallets)
 
-  console.log('username: ', account.username)
-  console.log('currencyWallets: ', currencyWallets)
+  console.log('quotes: ', quotes)
 }
 
 main().catch(e => console.error(e))
