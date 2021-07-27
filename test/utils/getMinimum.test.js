@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
+
 import { cleanMinAmountDocs, findMinimum } from '../../src/utils/getMinimum'
 import { fixture } from './getMinimumFixtures'
 
@@ -7,7 +8,7 @@ describe('cleanMinAmountDocs', () => {
   for (const testCase of fixture.cleanMinAmountDocs) {
     it(testCase.testDescription, () => {
       // Arrange
-      const {inputArgs, outputType, expectedOutput} = testCase
+      const { inputArgs, outputType, expectedOutput } = testCase
 
       // Parameter typing tests
       if (outputType === 'TypeError') {
@@ -28,7 +29,7 @@ describe('findMinimum', () => {
   for (const testCase of fixture.findMinimum) {
     it(testCase.testDescription, () => {
       // Arrange
-      const {inputArgs, outputType, expectedOutput} = testCase
+      const { inputArgs, outputType, expectedOutput } = testCase
 
       // Parameter typing tests
       if (outputType === 'TypeError') {
