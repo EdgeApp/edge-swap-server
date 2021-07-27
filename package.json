@@ -27,6 +27,7 @@
     "prepare": "configure ./src/utils/config.ts && npm run build",
     "pretest": "npm run lint",
     "start:api": "node -r sucrase/register src/indexApi.ts",
+    "start:engine": "node -r sucrase/register src/indexEngine.ts",
     "test": "mocha -r sucrase/register test/**/*.test.js"
   },
   "dependencies": {
@@ -34,11 +35,12 @@
     "biggystring": "^3.0.2",
     "body-parser": "~1.0.1",
     "cleaner-config": "^0.1.4",
-    "cleaners": "^0.2.0",
+    "cleaners": "^0.3.9",
     "cors": "^2.8.3",
     "date-fns": "^2.22.1",
     "edge-core-js": "^0.18.0",
     "edge-currency-bitcoin": "^4.7.7",
+    "edge-exchange-plugins": "^0.11.30",
     "edge-server-tools": "^0.2.3",
     "es6-promisify-all": "^0.1.0",
     "express": "~4.17.1",
