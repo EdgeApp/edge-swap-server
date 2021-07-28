@@ -1,9 +1,32 @@
+import { asNumber, asString } from 'cleaners'
 import {
   EdgeAccount,
   EdgeCurrencyWallet,
   EdgePluginMap,
-  EdgeSwapQuote
+  EdgeSwapQuote,
+  EdgeSwapRequest
 } from 'edge-core-js'
+
+interface SwapReqInfo {
+  fromWallet: EdgeCurrencyWallet
+  toWallet: EdgeCurrencyWallet
+  amount: number
+}
+
+export const asFromSwapRequest = (reqParams: SwapReqInfo): EdgeSwapRequest => {
+  const { fromWallet, toWallet, amount } = reqParams
+  if (fromWallet == null || toWallet == null) {
+    throw new TypeError('An invalid wallet was passed as a parameter')
+  }
+  return {
+    fromWallet,
+    toWallet,
+    fromCurrencyCode: asString(fromWallet.currencyInfo.currencyCode),
+    toCurrencyCode: asString(toWallet.currencyInfo.currencyCode),
+    nativeAmount: asNumber(amount).toString(),
+    quoteFor: 'from' as const
+  }
+}
 
 export const createDisabledSwapPluginMap = (
   plugin: string,
@@ -27,14 +50,13 @@ export async function swapQuotes(
 
   // Create an EdgeSwapRequest
   // NOTE: This is a placeholder that will be replaced in the future
-  const swapRequest = {
+  const swapReqParams: SwapReqInfo = {
     fromWallet: currencyWallets[0],
     toWallet: currencyWallets[1],
-    fromCurrencyCode: currencyWallets[0].currencyInfo.currencyCode,
-    toCurrencyCode: currencyWallets[1].currencyInfo.currencyCode,
-    nativeAmount: '1000000',
-    quoteFor: 'from' as const
+    amount: 1000000
   }
+
+  const swapRequest = asFromSwapRequest(swapReqParams)
 
   // Get an array of all the swap plugin names
   const swapPluginNamesArr = Object.keys(account.swapConfig)
