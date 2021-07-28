@@ -1,4 +1,352 @@
 export const fixture = {
+  asFromSwapRequest: [
+    {
+      testDescription:
+        'Returns an EdgeSwapRequest with valid properties for an argument of interface EdgeSwapInfo',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'object',
+      expectedOutput: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        fromCurrencyCode: 'BTC',
+        toCurrencyCode: 'DOGE',
+        nativeAmount: '1000000',
+        quoteFor: 'from'
+      }
+    },
+    {
+      testDescription: 'Returns an EdgeSwapRequest for an amount of NaN',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: NaN
+      },
+      outputType: 'object',
+      expectedOutput: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        fromCurrencyCode: 'BTC',
+        toCurrencyCode: 'DOGE',
+        nativeAmount: 'NaN',
+        quoteFor: 'from'
+      }
+    },
+    {
+      testDescription: 'Returns an EdgeSwapRequest for an amount of Infinity',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: Infinity
+      },
+      outputType: 'object',
+      expectedOutput: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        fromCurrencyCode: 'BTC',
+        toCurrencyCode: 'DOGE',
+        nativeAmount: 'Infinity',
+        quoteFor: 'from'
+      }
+    },
+    {
+      testDescription: 'Throws a TypeError for an argument of undefined',
+      inputArgs: undefined,
+      outputType: 'TypeError'
+    },
+    {
+      testDescription:
+        'Throws a TypeError when the fromWallet is an empty object',
+      inputArgs: {
+        fromWallet: {},
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription:
+        'Throws a TypeError when the nested value of currencyCode for fromWallet is not a string',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 20
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when fromWallet is null',
+      inputArgs: {
+        fromWallet: null,
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription:
+        'Throws a TypeError when key value pair for fromWallet is missing',
+      inputArgs: {
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when fromWallet is an empty array',
+      inputArgs: {
+        fromWallet: [],
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when toWallet is an empty object',
+      inputArgs: {
+        fromWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        toWallet: {},
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription:
+        'Throws a TypeError when the nested value of currencyCode for toWallet is not a string',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 10
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription:
+        'Throws a TypeError when key value pair for toWallet is missing',
+      inputArgs: {
+        fromWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when toWallet is null',
+      inputArgs: {
+        fromWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        toWallet: null,
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when toWallet is an empty array',
+      inputArgs: {
+        fromWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        toWallet: [],
+        amount: 1000000
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription:
+        'Throws a TypeError when key value pair for amount is missing',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        }
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when amount is null',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: null
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when amount is an empty object',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: {}
+      },
+      outputType: 'TypeError'
+    },
+    {
+      testDescription: 'Throws a TypeError when amount is an empty array',
+      inputArgs: {
+        fromWallet: {
+          name: 'BTC wallet',
+          currencyInfo: {
+            currencyCode: 'BTC'
+          }
+        },
+        toWallet: {
+          name: 'DOGE wallet',
+          currencyInfo: {
+            currencyCode: 'DOGE'
+          }
+        },
+        amount: []
+      },
+      outputType: 'TypeError'
+    }
+  ],
   createDisabledSwapPluginMap: [
     {
       testDescription:
