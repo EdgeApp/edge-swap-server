@@ -1,5 +1,5 @@
 import { setupEngine } from './utils/setupEngine'
-import { swapQuotes } from './utils/swapQuotes'
+import { swapQuotes } from './utils/swapMinAmounts'
 
 async function main(): Promise<void> {
   const { account, currencyWallets } = await setupEngine()
