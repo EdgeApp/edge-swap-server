@@ -39,7 +39,7 @@ export const createDisabledSwapPluginMap = (
   }, {})
 }
 
-export async function swapQuotes(
+export async function swapMinAmounts(
   account: EdgeAccount,
   currencyWallets: EdgeCurrencyWallet[]
 ): Promise<EdgeSwapQuote[]> {
