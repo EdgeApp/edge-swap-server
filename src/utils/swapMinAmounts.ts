@@ -24,6 +24,7 @@ const baseUri: string = config.ratesServerAddress
 const route: string = 'v1/exchangeRate/'
 const queryStr: string = '?currency_pair=USD_'
 
+const INIT_MIN = 0
 const INIT_MAX_USD_AMOUNT = 200 // Variable to help get initial binary search max in USD
 
 const asRatesServerResponse = asObject({
@@ -109,70 +110,70 @@ export async function swapMinAmounts(
       })
   }
 
+  // Enable all swap plugins
+  for (const swapPluginConfig of Object.values(account.swapConfig)) {
+    await swapPluginConfig.changeEnabled(true)
+  }
+
+  // Get an array of all the swap plugin names
+  const swapPluginNamesArr = Object.keys(account.swapConfig)
+
   const allMinAmtsObj: { [key: string]: SingleCurrencyPairMinAmt } = {}
 
-  try {
-    // Enable all swap plugins
-    for (const swapPluginConfig of Object.values(account.swapConfig)) {
-      await swapPluginConfig.changeEnabled(true)
-    }
+  // Loop over the currency wallets for the different source currencies
+  for (const fromCurrencyWallet of currencyWallets) {
+    try {
+      const fromWalletCurrencyCode: string =
+        fromCurrencyWallet.currencyInfo.currencyCode
+      const response = await fetch(
+        baseUri + route + queryStr + fromWalletCurrencyCode
+      )
+      const { exchangeRate } = asRatesServerResponse(await response.json())
+      const initBinarySearchMax = Math.ceil(
+        INIT_MAX_USD_AMOUNT *
+          parseFloat(exchangeRate) *
+          parseInt(fromCurrencyWallet.currencyInfo.denominations[0].multiplier)
+      )
 
-    // Get an array of all the swap plugin names
-    const swapPluginNamesArr = Object.keys(account.swapConfig)
+      // Loop over the currency wallets for the different destination currencies
+      for (const toCurrencyWallet of currencyWallets) {
+        if (fromCurrencyWallet === toCurrencyWallet) continue
 
-    // Initial parameters for findMinSwapAmount
-    // NOTE: This is a placeholder that will be replaced in the future
-    const initBinarySearchMin = 0
-    const fromCurrencyWallet = currencyWallets[0]
-    const fromWalletCurrencyCode: string =
-      fromCurrencyWallet.currencyInfo.currencyCode
-    const response = await fetch(
-      baseUri + route + queryStr + fromWalletCurrencyCode
-    )
-    const { exchangeRate } = asRatesServerResponse(await response.json())
-    const initBinarySearchMax = Math.ceil(
-      INIT_MAX_USD_AMOUNT *
-        parseFloat(exchangeRate) *
-        parseInt(fromCurrencyWallet.currencyInfo.denominations[0].multiplier)
-    )
+        const toWalletCurrencyCode: string =
+          toCurrencyWallet.currencyInfo.currencyCode
 
-    // Loop over the currency wallets for the different destination currencies
-    for (const toCurrencyWallet of currencyWallets) {
-      if (fromCurrencyWallet === toCurrencyWallet) continue
+        const currencyPair: string =
+          fromWalletCurrencyCode + '_' + toWalletCurrencyCode
 
-      const toWalletCurrencyCode: string =
-        toCurrencyWallet.currencyInfo.currencyCode
+        // Create a variable to store the swap quotes with the plugin name as the key
+        const singleCurrencyPairMinAmtObj: SingleCurrencyPairMinAmt = {}
 
-      const currencyPair: string =
-        fromWalletCurrencyCode + '_' + toWalletCurrencyCode
-
-      // Create a variable to store the swap quotes with the plugin name as the key
-      const singleCurrencyPairMinAmtObj: SingleCurrencyPairMinAmt = {}
-
-      // Loop over each plugin to attempt to get a swap quote
-      for (const plugin of swapPluginNamesArr) {
-        try {
-          const disabledPluginMap = createDisabledSwapPluginMap(
-            plugin,
-            swapPluginNamesArr
-          )
-          const requestOptions = { disabled: disabledPluginMap }
-          singleCurrencyPairMinAmtObj[plugin] = await findMinSwapAmount(
-            initBinarySearchMin,
-            initBinarySearchMax,
-            fromCurrencyWallet,
-            toCurrencyWallet,
-            requestOptions
-          )
-        } catch (e) {
-          console.log(e)
+        // Loop over each plugin to attempt to get a swap quote
+        for (const plugin of swapPluginNamesArr) {
+          try {
+            const disabledPluginMap = createDisabledSwapPluginMap(
+              plugin,
+              swapPluginNamesArr
+            )
+            const requestOptions = { disabled: disabledPluginMap }
+            singleCurrencyPairMinAmtObj[plugin] = await findMinSwapAmount(
+              INIT_MIN,
+              initBinarySearchMax,
+              fromCurrencyWallet,
+              toCurrencyWallet,
+              requestOptions
+            )
+          } catch (e) {
+            console.log(e)
+          }
         }
-      }
 
-      allMinAmtsObj[currencyPair] = singleCurrencyPairMinAmtObj
+        allMinAmtsObj[currencyPair] = singleCurrencyPairMinAmtObj
+      }
+    } catch (e) {
+      console.log(e)
     }
-  } catch (e) {
-    console.log(e)
   }
+
   return allMinAmtsObj
 }
