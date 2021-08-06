@@ -5,7 +5,7 @@ import {
   asFromSwapRequest,
   createDisabledSwapPluginMap
 } from '../../src/utils/swapMinAmounts'
-import { fixture } from './swapQuotesFixtures'
+import { fixture } from './swapMinAmountsFixtures'
 
 describe('asFromSwapRequest', () => {
   for (const testCase of fixture.asFromSwapRequest) {
