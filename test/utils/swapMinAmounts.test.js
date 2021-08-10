@@ -4,8 +4,8 @@ import { describe, it } from 'mocha'
 import {
   asFromSwapRequest,
   createDisabledSwapPluginMap
-} from '../../src/utils/swapQuotes'
-import { fixture } from './swapQuotesFixtures'
+} from '../../src/utils/swapMinAmounts'
+import { fixture } from './swapMinAmountsFixtures'
 
 describe('asFromSwapRequest', () => {
   for (const testCase of fixture.asFromSwapRequest) {
