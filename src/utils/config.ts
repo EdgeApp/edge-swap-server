@@ -16,7 +16,8 @@ const {
   EDGE_API_KEY = '',
   EDGE_APP_ID = '',
   EDGE_USERNAME = '',
-  EDGE_PASSWORD = ''
+  EDGE_PASSWORD = '',
+  EDGE_RATES_SERVER = 'https://rates1.edge.app/'
 } = process.env
 
 const asSwapPlugin = asObject({
@@ -41,6 +42,7 @@ export const asConfig = asObject({
   appId: asOptional(asString, EDGE_APP_ID),
   username: asOptional(asString, EDGE_USERNAME),
   password: asOptional(asString, EDGE_PASSWORD),
+  ratesServerAddress: asOptional(asString, EDGE_RATES_SERVER),
   plugins: asOptional(asPlugin, {})
 })
 
