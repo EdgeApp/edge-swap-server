@@ -6,7 +6,7 @@ import {
   EdgeSwapRequest
 } from 'edge-core-js'
 
-import { binarySearch } from './utils'
+import { binarySearch, fetchExchangeRates } from './utils'
 
 interface SwapReqInfo {
   fromWallet: EdgeCurrencyWallet
@@ -25,6 +25,9 @@ interface MinAmountInfo {
   currencyPair: string
   plugin: string
 }
+
+const INIT_START = 0
+const INIT_END_USD_AMOUNT = 200 // Variable to help get initial binary search end in USD
 
 const asMinAmountResponse = asObject({
   status: asString,
@@ -67,10 +70,11 @@ export async function swapMinAmounts(
   )
   await Promise.all(enablePluginPromises)
 
+  // Fetch exchange rates for wallets
+  const exchangeRates = await fetchExchangeRates(currencyWallets)
+
   // Initial parameters for findMinSwapAmount
   // NOTE: This is a placeholder that will be replaced in the future
-  const initBinarySearchMin = 0
-  const initBinarySearchMax = 1000000
   const fromCurrencyWallet = currencyWallets[0]
   const toCurrencyWallet = currencyWallets[1]
 
@@ -111,10 +115,19 @@ export async function swapMinAmounts(
       }
     }
 
+    const {
+      currencyInfo: { currencyCode, denominations }
+    } = fromCurrencyWallet
+
+    const initBinarySearchEnd =
+      INIT_END_USD_AMOUNT *
+      exchangeRates[currencyCode] *
+      parseInt(denominations[0].multiplier)
+
     return await binarySearch(
       swapQuoteAtOrAboveMin,
-      initBinarySearchMin,
-      initBinarySearchMax
+      INIT_START,
+      initBinarySearchEnd
     )
   })
 
