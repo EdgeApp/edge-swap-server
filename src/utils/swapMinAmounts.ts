@@ -73,22 +73,22 @@ export async function swapMinAmounts(
   // Fetch exchange rates for wallets
   const exchangeRates = await fetchExchangeRates(currencyWallets)
 
-  // Initial parameters for findMinSwapAmount
-  // NOTE: This is a placeholder that will be replaced in the future
-  const fromCurrencyWallet = currencyWallets[0]
-  const toCurrencyWallet = currencyWallets[1]
-
   // Get an array of all the swap plugin names
   const swapPluginNamesArr = Object.keys(account.swapConfig)
 
   const swapQuoteParamArr: SwapQuoteParam[] = []
 
-  for (const plugin of swapPluginNamesArr) {
-    swapQuoteParamArr.push({
-      fromCurrencyWallet,
-      toCurrencyWallet,
-      plugin
-    })
+  for (const fromCurrencyWallet of currencyWallets) {
+    for (const toCurrencyWallet of currencyWallets) {
+      if (fromCurrencyWallet === toCurrencyWallet) continue
+      for (const plugin of swapPluginNamesArr) {
+        swapQuoteParamArr.push({
+          fromCurrencyWallet,
+          toCurrencyWallet,
+          plugin
+        })
+      }
+    }
   }
 
   const minAmountPromiseArr = swapQuoteParamArr.map(async swapQuoteParam => {
@@ -140,16 +140,17 @@ export async function swapMinAmounts(
       try {
         const { value } = asMinAmountResponse(settledMinAmounts[i])
         const {
-          fromCurrencyWallet,
-          toCurrencyWallet,
+          fromCurrencyWallet: {
+            currencyInfo: { currencyCode: fromCurrencyCode, denominations }
+          },
+          toCurrencyWallet: {
+            currencyInfo: { currencyCode: toCurrencyCode }
+          },
           plugin
         } = swapQuoteParamArr[i]
         minAmountArr.push({
-          minAmount: value,
-          currencyPair:
-            fromCurrencyWallet.currencyInfo.currencyCode +
-            '_' +
-            toCurrencyWallet.currencyInfo.currencyCode,
+          minAmount: value / parseInt(denominations[0].multiplier),
+          currencyPair: fromCurrencyCode + '_' + toCurrencyCode,
           plugin
         })
       } catch (e) {
