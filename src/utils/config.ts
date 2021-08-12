@@ -20,7 +20,7 @@ const {
   EDGE_RATES_SERVER = 'https://rates1.edge.app/'
 } = process.env
 
-const asSwapPlugin = asObject({
+export const asSwapPlugin = asObject({
   apiKey: asOptional(asString),
   secret: asOptional(asString),
   affiliateId: asOptional(asString),
