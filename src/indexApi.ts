@@ -9,7 +9,7 @@ import { config } from './utils/config'
 import { couchSchema, minAmtDbPrefix } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
 import { checkDbAndFindMinAmount } from './utils/getMinimum'
-import { mockPlugins } from './utils/mockPlugins'
+import { getLowercaseSwapPlugins } from './utils/lowercaseSwapPlugins'
 
 const express = require('express')
 const http = require('http')
@@ -31,11 +31,14 @@ const ParamError: ErrorResponse = makeErrorResponse(
 // call the packages we need
 const app = express()
 
+// Get the names of the swap plugins
+const swapPluginNamesArr = getLowercaseSwapPlugins(config.plugins)
+
 // Nano for CouchDB
 // =============================================================================
 const nanoDb = nano(config.dbFullpath)
-const minAmtDocScopeArr = mockPlugins.map(plugin => {
-  const pluginMinAmtDocScope = nanoDb.db.use(minAmtDbPrefix + plugin.pluginName)
+const minAmtDocScopeArr = swapPluginNamesArr.map(pluginName => {
+  const pluginMinAmtDocScope = nanoDb.db.use(minAmtDbPrefix + pluginName)
   return promisify(pluginMinAmtDocScope)
 })
 
