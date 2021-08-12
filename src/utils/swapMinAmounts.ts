@@ -1,4 +1,4 @@
-import { asNumber, asString } from 'cleaners'
+import { asNumber, asObject, asString } from 'cleaners'
 import {
   EdgeAccount,
   EdgeCurrencyWallet,
@@ -6,13 +6,33 @@ import {
   EdgeSwapRequest
 } from 'edge-core-js'
 
-import { binarySearch } from './utils'
+import { binarySearch, fetchExchangeRates } from './utils'
 
 interface SwapReqInfo {
   fromWallet: EdgeCurrencyWallet
   toWallet: EdgeCurrencyWallet
   amount: number
 }
+
+interface SwapQuoteParam {
+  fromCurrencyWallet: EdgeCurrencyWallet
+  toCurrencyWallet: EdgeCurrencyWallet
+  plugin: string
+}
+
+interface MinAmountInfo {
+  minAmount: number
+  currencyPair: string
+  plugin: string
+}
+
+const INIT_START = 0
+const INIT_END_USD_AMOUNT = 200 // Variable to help get initial binary search end in USD
+
+const asMinAmountResponse = asObject({
+  status: asString,
+  value: asNumber
+})
 
 export const asFromSwapRequest = (reqParams: SwapReqInfo): EdgeSwapRequest => {
   const { fromWallet, toWallet, amount } = reqParams
@@ -43,58 +63,101 @@ export const createDisabledSwapPluginMap = (
 export async function swapMinAmounts(
   account: EdgeAccount,
   currencyWallets: EdgeCurrencyWallet[]
-): Promise<{ [key: string]: number }> {
+): Promise<MinAmountInfo[]> {
   // Enable all swap plugins
-  for (const swapPluginConfig of Object.values(account.swapConfig)) {
-    await swapPluginConfig.changeEnabled(true)
-  }
+  const enablePluginPromises = Object.values(account.swapConfig).map(
+    async plugin => await plugin.changeEnabled(true)
+  )
+  await Promise.all(enablePluginPromises)
 
-  // Initial parameters for findMinSwapAmount
-  // NOTE: This is a placeholder that will be replaced in the future
-  const initBinarySearchMin = 0
-  const initBinarySearchMax = 1000000
-  const fromCurrencyWallet = currencyWallets[0]
-  const toCurrencyWallet = currencyWallets[1]
+  // Fetch exchange rates for wallets
+  const exchangeRates = await fetchExchangeRates(currencyWallets)
 
   // Get an array of all the swap plugin names
   const swapPluginNamesArr = Object.keys(account.swapConfig)
 
-  // Create a variable to store the swap quotes with the plugin name as the key
-  const minAmountObj: { [key: string]: number } = {}
+  const swapQuoteParamArr: SwapQuoteParam[] = []
 
-  // Loop over each plugin to attempt to get a swap quote
-  for (const plugin of swapPluginNamesArr) {
-    try {
-      const disabledPluginMap = createDisabledSwapPluginMap(
-        plugin,
-        swapPluginNamesArr
-      )
-      const requestOptions = { disabled: disabledPluginMap }
-      const swapQuoteAtOrAboveMin = async (
-        nativeAmount: number
-      ): Promise<boolean> => {
-        try {
-          const binarySearchSwapReq = asFromSwapRequest({
-            fromWallet: fromCurrencyWallet,
-            toWallet: toCurrencyWallet,
-            amount: nativeAmount
-          })
-          await account.fetchSwapQuote(binarySearchSwapReq, requestOptions)
-          return true
-        } catch (e) {
-          if (e.message !== 'Amount is too low') throw e
-          return false
-        }
+  for (const fromCurrencyWallet of currencyWallets) {
+    for (const toCurrencyWallet of currencyWallets) {
+      if (fromCurrencyWallet === toCurrencyWallet) continue
+      for (const plugin of swapPluginNamesArr) {
+        swapQuoteParamArr.push({
+          fromCurrencyWallet,
+          toCurrencyWallet,
+          plugin
+        })
       }
-      minAmountObj[plugin] = await binarySearch(
-        swapQuoteAtOrAboveMin,
-        initBinarySearchMin,
-        initBinarySearchMax
-      )
-    } catch (e) {
-      console.log(e)
     }
   }
 
-  return minAmountObj
+  const minAmountPromiseArr = swapQuoteParamArr.map(async swapQuoteParam => {
+    const { fromCurrencyWallet, toCurrencyWallet, plugin } = swapQuoteParam
+    const disabledPluginMap = createDisabledSwapPluginMap(
+      plugin,
+      swapPluginNamesArr
+    )
+    const requestOptions = { disabled: disabledPluginMap }
+    const swapQuoteAtOrAboveMin = async (
+      nativeAmount: number
+    ): Promise<boolean> => {
+      try {
+        const binarySearchSwapReq = asFromSwapRequest({
+          fromWallet: fromCurrencyWallet,
+          toWallet: toCurrencyWallet,
+          amount: nativeAmount
+        })
+        await account.fetchSwapQuote(binarySearchSwapReq, requestOptions)
+        return true
+      } catch (e) {
+        if (e.message !== 'Amount is too low') throw e
+        return false
+      }
+    }
+
+    const {
+      currencyInfo: { currencyCode, denominations }
+    } = fromCurrencyWallet
+
+    const initBinarySearchEnd =
+      INIT_END_USD_AMOUNT *
+      exchangeRates[currencyCode] *
+      parseInt(denominations[0].multiplier)
+
+    return await binarySearch(
+      swapQuoteAtOrAboveMin,
+      INIT_START,
+      initBinarySearchEnd
+    )
+  })
+
+  const settledMinAmounts = await Promise.allSettled(minAmountPromiseArr)
+
+  const minAmountArr: MinAmountInfo[] = []
+
+  for (let i = 0; i < settledMinAmounts.length; i++) {
+    if (settledMinAmounts[i].status === 'fulfilled') {
+      try {
+        const { value } = asMinAmountResponse(settledMinAmounts[i])
+        const {
+          fromCurrencyWallet: {
+            currencyInfo: { currencyCode: fromCurrencyCode, denominations }
+          },
+          toCurrencyWallet: {
+            currencyInfo: { currencyCode: toCurrencyCode }
+          },
+          plugin
+        } = swapQuoteParamArr[i]
+        minAmountArr.push({
+          minAmount: value / parseInt(denominations[0].multiplier),
+          currencyPair: fromCurrencyCode + '_' + toCurrencyCode,
+          plugin
+        })
+      } catch (e) {
+        console.log(e)
+      }
+    }
+  }
+
+  return minAmountArr
 }
