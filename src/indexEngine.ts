@@ -5,6 +5,7 @@ import { minAmtDbPrefix } from './utils/couchSchema'
 import { getLowercaseSwapPlugins } from './utils/lowercaseSwapPlugins'
 import { setupEngine } from './utils/setupEngine'
 import { swapMinAmounts } from './utils/swapMinAmounts'
+import { msUntilStartNextDayUTC, snooze } from './utils/utils'
 
 const nano = require('nano')
 const promisify = require('promisify-node')
@@ -23,28 +24,33 @@ const minAmountDbs = swapPluginNamesArr.reduce(
 )
 
 async function main(): Promise<void> {
-  const { account, currencyWallets } = await setupEngine()
-  const minAmounts = await swapMinAmounts(account, currencyWallets)
+  while (true) {
+    const { account, currencyWallets } = await setupEngine()
+    const minAmounts = await swapMinAmounts(account, currencyWallets)
 
-  const currentUTCDate: string = formatISO(new Date(), {
-    representation: 'date'
-  }) // Variable for current UTC date using date-fns
+    const currentUTCDate: string = formatISO(new Date(), {
+      representation: 'date'
+    }) // Variable for current UTC date using date-fns
 
-  const minAmtInsertPromises = minAmounts.map(async minAmountInfo => {
-    const { minAmount: minAmountNum, currencyPair, plugin } = minAmountInfo
-    const pluginData = {
-      _id: currentUTCDate + ':' + currencyPair,
-      data: {
-        minAmount: minAmountNum.toString()
+    const minAmtInsertPromises = minAmounts.map(async minAmountInfo => {
+      const { minAmount: minAmountNum, currencyPair, plugin } = minAmountInfo
+      const pluginData = {
+        _id: currentUTCDate + ':' + currencyPair,
+        data: {
+          minAmount: minAmountNum.toString()
+        }
       }
-    }
-    await minAmountDbs[plugin.toLowerCase()].insert(pluginData)
-  })
+      await minAmountDbs[plugin.toLowerCase()].insert(pluginData)
+    })
 
-  try {
-    await Promise.all(minAmtInsertPromises)
-  } catch (e) {
-    console.log(e)
+    try {
+      await Promise.all(minAmtInsertPromises)
+    } catch (e) {
+      console.log(e)
+    }
+
+    const delay = msUntilStartNextDayUTC()
+    await snooze(delay)
   }
 }
 

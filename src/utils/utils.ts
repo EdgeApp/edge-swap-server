@@ -1,4 +1,10 @@
 import { asNumber, asObject, asString } from 'cleaners'
+import {
+  differenceInMilliseconds,
+  formatISO,
+  parseISO,
+  startOfTomorrow
+} from 'date-fns'
 import { EdgeCurrencyWallet } from 'edge-core-js'
 import fetch from 'node-fetch'
 
@@ -83,3 +89,16 @@ export const binarySearch = async (
   }
   return start
 }
+
+export const msUntilStartNextDayUTC = (): number => {
+  const currentTime = new Date()
+  const tomorrowLocalTimezone = startOfTomorrow()
+  const tomorrowDateStr = formatISO(tomorrowLocalTimezone, {
+    representation: 'date'
+  })
+  const tomorrowUTCDate = parseISO(tomorrowDateStr + 'T00:00:00.000Z')
+  return differenceInMilliseconds(tomorrowUTCDate, currentTime)
+}
+
+export const snooze = async (ms: number): Promise<void> =>
+  await new Promise((resolve: Function) => setTimeout(resolve, ms))
