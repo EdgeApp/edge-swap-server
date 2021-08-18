@@ -5,6 +5,7 @@ import {
   lockEdgeCorePlugins,
   makeEdgeContext
 } from 'edge-core-js'
+import accountBasedPlugins from 'edge-currency-accountbased'
 import bitcoinPlugins from 'edge-currency-bitcoin'
 import edgeSwapPlugins from 'edge-exchange-plugins'
 
@@ -15,6 +16,7 @@ interface AccountInfo {
   currencyWallets: EdgeCurrencyWallet[]
 }
 
+addEdgeCorePlugins(accountBasedPlugins)
 addEdgeCorePlugins(bitcoinPlugins)
 addEdgeCorePlugins(edgeSwapPlugins)
 lockEdgeCorePlugins()
