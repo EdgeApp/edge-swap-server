@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@types/node": "^14.0.22",
-    "biggystring": "^3.0.2",
+    "biggystring": "^4.0.0",
     "body-parser": "~1.0.1",
     "cleaner-config": "^0.1.4",
     "cleaners": "^0.3.9",
