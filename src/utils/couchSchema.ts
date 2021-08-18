@@ -1,10 +1,14 @@
-/* eslint-disable no-var */
 import { DatabaseSetup } from 'edge-server-tools'
 
-import { mockPlugins } from './mockPlugins'
+import { config } from './config'
+import { getLowercaseSwapPlugins } from './lowercaseSwapPlugins'
 
 export const minAmtDbPrefix = 'minamount_'
 
-export const couchSchema: DatabaseSetup[] = mockPlugins.map(plugin => {
-  return { name: minAmtDbPrefix + plugin.pluginName }
-})
+const swapPluginNamesArr = getLowercaseSwapPlugins(config.plugins)
+
+export const couchSchema: DatabaseSetup[] = swapPluginNamesArr.map(
+  pluginName => {
+    return { name: minAmtDbPrefix + pluginName }
+  }
+)
