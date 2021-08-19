@@ -16,7 +16,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'object',
       expectedOutput: {
@@ -39,7 +39,7 @@ export const fixture = {
       }
     },
     {
-      testDescription: 'Returns an EdgeSwapRequest for an amount of NaN',
+      testDescription: 'Returns an EdgeSwapRequest for a string of NaN',
       inputArgs: {
         fromWallet: {
           name: 'BTC wallet',
@@ -53,7 +53,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: NaN
+        amount: 'NaN'
       },
       outputType: 'object',
       expectedOutput: {
@@ -76,7 +76,7 @@ export const fixture = {
       }
     },
     {
-      testDescription: 'Returns an EdgeSwapRequest for an amount of Infinity',
+      testDescription: 'Returns an EdgeSwapRequest for a string of Infinity',
       inputArgs: {
         fromWallet: {
           name: 'BTC wallet',
@@ -90,7 +90,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: Infinity
+        amount: 'Infinity'
       },
       outputType: 'object',
       expectedOutput: {
@@ -128,7 +128,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -148,7 +148,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -162,7 +162,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -176,7 +176,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -190,7 +190,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -204,7 +204,7 @@ export const fixture = {
           }
         },
         toWallet: {},
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -224,7 +224,7 @@ export const fixture = {
             currencyCode: 10
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -238,7 +238,7 @@ export const fixture = {
             currencyCode: 'DOGE'
           }
         },
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -252,7 +252,7 @@ export const fixture = {
           }
         },
         toWallet: null,
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
@@ -266,7 +266,7 @@ export const fixture = {
           }
         },
         toWallet: [],
-        amount: 1000000
+        amount: '1000000'
       },
       outputType: 'TypeError'
     },
