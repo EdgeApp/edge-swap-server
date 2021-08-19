@@ -1,4 +1,4 @@
-import { asNumber, asObject, asString } from 'cleaners'
+import { asObject, asString } from 'cleaners'
 import {
   differenceInMilliseconds,
   formatISO,
@@ -10,8 +10,10 @@ import fetch from 'node-fetch'
 
 import { config } from './config'
 
+const bs = require('biggystring')
+
 interface ExchangeRateInfo {
-  [currencyCode: string]: number
+  [currencyCode: string]: string
 }
 
 const baseUri: string = config.ratesServerAddress
@@ -46,14 +48,13 @@ export const fetchExchangeRates = async (
     try {
       const response = await fetch(baseUri + route + queryStr + currencyCode)
       const { exchangeRate } = asRatesServerResponse(await response.json())
-      const exchangeRateFloat = parseFloat(exchangeRate)
 
       // Check if the response was successful or if the exchange rate is a valid number
-      if (!response.ok || isNaN(exchangeRateFloat)) {
+      if (!response.ok || isNaN(parseFloat(exchangeRate))) {
         throw new TypeError(fetchErrorMsg + currencyCode)
       }
 
-      return { [currencyCode]: exchangeRateFloat }
+      return { [currencyCode]: exchangeRate }
     } catch (e) {
       console.log(e)
     }
@@ -71,20 +72,25 @@ export const fetchExchangeRates = async (
 
 export const binarySearch = async (
   dataFetchFn: Function,
-  start: number,
-  end: number
-): Promise<number> => {
-  if (start > end || !isFinite(start) || !isFinite(end))
+  start: string,
+  end: string
+): Promise<string> => {
+  if (
+    bs.gt(start, end) === true ||
+    !isFinite(parseFloat(start)) ||
+    !isFinite(parseFloat(end))
+  )
     throw new Error('Invalid start/end parameter(s)')
-  while (asNumber(start) <= asNumber(end)) {
-    const mid = Math.floor((start + end) / 2)
+  while (bs.lte(start, end) === true) {
+    const sum = bs.add(start, end)
+    const mid = bs.div(sum, '2')
 
     const isSuccessfulResponse: boolean = await dataFetchFn(mid)
 
     if (!isSuccessfulResponse) {
-      start = mid + 1
+      start = bs.add(mid, '1')
     } else {
-      end = mid - 1
+      end = bs.sub(mid, '1')
     }
   }
   return start

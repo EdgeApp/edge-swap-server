@@ -1,4 +1,4 @@
-import { asNumber, asObject, asString } from 'cleaners'
+import { asObject, asString } from 'cleaners'
 import {
   EdgeAccount,
   EdgeCurrencyWallet,
@@ -8,10 +8,12 @@ import {
 
 import { binarySearch, fetchExchangeRates } from './utils'
 
+const bs = require('biggystring')
+
 interface SwapReqInfo {
   fromWallet: EdgeCurrencyWallet
   toWallet: EdgeCurrencyWallet
-  amount: number
+  amount: string
 }
 
 interface SwapQuoteParam {
@@ -21,17 +23,17 @@ interface SwapQuoteParam {
 }
 
 interface MinAmountInfo {
-  minAmount: number
+  minAmount: string
   currencyPair: string
   plugin: string
 }
 
-const INIT_START = 0
-const INIT_END_USD_AMOUNT = 200 // Variable to help get initial binary search end in USD
+const INIT_START = '0'
+const INIT_END_USD_AMOUNT = '200' // Variable to help get initial binary search end in USD
 
 const asMinAmountResponse = asObject({
   status: asString,
-  value: asNumber
+  value: asString
 })
 
 export const asFromSwapRequest = (reqParams: SwapReqInfo): EdgeSwapRequest => {
@@ -44,7 +46,7 @@ export const asFromSwapRequest = (reqParams: SwapReqInfo): EdgeSwapRequest => {
     toWallet,
     fromCurrencyCode: asString(fromWallet.currencyInfo.currencyCode),
     toCurrencyCode: asString(toWallet.currencyInfo.currencyCode),
-    nativeAmount: asNumber(amount).toString(),
+    nativeAmount: asString(amount),
     quoteFor: 'from' as const
   }
 }
@@ -99,7 +101,7 @@ export async function swapMinAmounts(
     )
     const requestOptions = { disabled: disabledPluginMap }
     const swapQuoteAtOrAboveMin = async (
-      nativeAmount: number
+      nativeAmount: string
     ): Promise<boolean> => {
       try {
         const binarySearchSwapReq = asFromSwapRequest({
@@ -119,10 +121,14 @@ export async function swapMinAmounts(
       currencyInfo: { currencyCode, denominations }
     } = fromCurrencyWallet
 
-    const initBinarySearchEnd =
-      INIT_END_USD_AMOUNT *
-      exchangeRates[currencyCode] *
-      parseInt(denominations[0].multiplier)
+    const initEndCurrencyAmount = bs.mul(
+      INIT_END_USD_AMOUNT,
+      exchangeRates[currencyCode]
+    )
+    const initBinarySearchEnd = bs.mul(
+      initEndCurrencyAmount,
+      denominations[0].multiplier
+    )
 
     return await binarySearch(
       swapQuoteAtOrAboveMin,
@@ -148,8 +154,10 @@ export async function swapMinAmounts(
           },
           plugin
         } = swapQuoteParamArr[i]
+        const minAmountInt =
+          parseInt(value) / parseInt(denominations[0].multiplier)
         minAmountArr.push({
-          minAmount: value / parseInt(denominations[0].multiplier),
+          minAmount: minAmountInt.toString(),
           currencyPair: fromCurrencyCode + '_' + toCurrencyCode,
           plugin
         })
