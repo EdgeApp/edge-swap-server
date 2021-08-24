@@ -2,7 +2,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './utils/config'
-import { fetchExchangeRates } from './utils/exchangeRate'
+// import { fetchExchangeRates } from './utils/exchangeRate'
 import { setupEngine } from './utils/setupEngine'
 import {
   createBinarySwapQuote,
@@ -22,10 +22,18 @@ promisify(dbSwap)
 
 async function main(): Promise<void> {
   while (true) {
-    const { pairs, wallets, plugins, account } = await setupEngine()
+    // const { pairs, wallets, plugins, account } = await setupEngine()
+    const { wallets, plugins, account } = await setupEngine()
     const swapQuote = createBinarySwapQuote(account)
     // Fetch exchange rates for wallets
-    const exchangeRates = await fetchExchangeRates(pairs)
+    // const exchangeRates = await fetchExchangeRates(pairs)
+    const exchangeRates = {
+      BTC: '0.00002069',
+      DOGE: '3.35085718',
+      ETH: '0.00031066',
+      LTC: '0.00565936',
+      XRP: '0.85024416'
+    }
     // Create All the possible wallet pairs we have with the correct exchange rates
     const walletPairs = createCurrencyPairs(wallets, exchangeRates)
 
@@ -51,6 +59,7 @@ async function main(): Promise<void> {
     } catch (e) {
       console.log(e)
     } finally {
+      console.log('SNOOZING')
       await snooze(ONE_DAY)
     }
   }
