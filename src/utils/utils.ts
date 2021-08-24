@@ -1,32 +1,43 @@
-import { asNumber } from 'cleaners'
+import Big from 'big.js'
+import { DB } from 'nano'
 
-export const fetchSameKeyDocs = async (
-  key: string,
-  docScopeArr: any[]
-): Promise<any[]> => {
+import { config } from './config'
+
+export const snooze = async (ms: number): Promise<void> =>
+  await new Promise((resolve: Function) => setTimeout(resolve, ms))
+
+export const fetchSameKeyDocs = async (database: DB): Promise<any[]> => {
   // Array of promises to get the documents of the same key per database
-  const docPromisesArr = docScopeArr.map(async database => database.get(key))
+  const docPromisesArr = Object.keys(config.plugins).map(async pluginName =>
+    database.get(pluginName)
+  )
   // Capture the result of each promise, including whether it was fulfilled or rejected
   return await Promise.allSettled(docPromisesArr)
 }
 
 export const binarySearch = async (
-  dataFetchFn: Function,
-  start: number,
-  end: number
-): Promise<number> => {
-  if (start > end || !isFinite(start) || !isFinite(end))
-    throw new Error('Invalid start/end parameter(s)')
-  while (asNumber(start) <= asNumber(end)) {
-    const mid = Math.floor((start + end) / 2)
+  dataFetchFn: (value: string) => Promise<boolean>,
+  start: string,
+  end: string
+): Promise<string> => {
+  // Put Big in strict mode to check for any input errors
+  Object.assign(Big, { strict: true })
+  let bigStart = Big(start)
+  let bigEnd = Big(end)
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  if (bigStart.gt(bigEnd)) throw new Error('Invalid start/end parameter(s)')
+  // Return Big to default mode
+  Object.assign(Big, { strict: false })
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  while (bigStart.lte(bigEnd)) {
+    const bigMid = bigStart.add(bigEnd).div('2').round(0, 0)
 
-    const isSuccessfulResponse: boolean = await dataFetchFn(mid)
-
+    const isSuccessfulResponse: boolean = await dataFetchFn(bigMid.toFixed(0))
     if (!isSuccessfulResponse) {
-      start = mid + 1
+      bigStart = bigMid.add('1')
     } else {
-      end = mid - 1
+      bigEnd = bigMid.sub('1')
     }
   }
-  return start
+  return bigStart.toFixed(0)
 }

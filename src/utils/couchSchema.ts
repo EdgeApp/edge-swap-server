@@ -1,10 +1,11 @@
-/* eslint-disable no-var */
 import { DatabaseSetup } from 'edge-server-tools'
 
-import { mockPlugins } from './mockPlugins'
+import { config } from './config'
 
-export const minAmtDbPrefix = 'minamount_'
-
-export const couchSchema: DatabaseSetup[] = mockPlugins.map(plugin => {
-  return { name: minAmtDbPrefix + plugin.pluginName }
-})
+export const couchSchema: DatabaseSetup = {
+  name: config.dbName,
+  documents: Object.keys(config.plugins).reduce(
+    (res, pluginName) => ({ ...res, [pluginName]: {} }),
+    {}
+  )
+}

@@ -3,18 +3,16 @@
 
 import cluster from 'cluster'
 import { forkChildren, setupDatabase } from 'edge-server-tools'
+import express from 'express'
 import { query, validationResult } from 'express-validator'
+import http from 'http'
+import nano from 'nano'
+import promisify from 'promisify-node'
 
 import { config } from './utils/config'
-import { couchSchema, minAmtDbPrefix } from './utils/couchSchema'
+import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
 import { checkDbAndFindMinAmount } from './utils/getMinimum'
-import { mockPlugins } from './utils/mockPlugins'
-
-const express = require('express')
-const http = require('http')
-const nano = require('nano')
-const promisify = require('promisify-node')
 
 const RouteError: ErrorResponse = makeErrorResponse(
   'bad_query',
@@ -34,34 +32,22 @@ const app = express()
 // Nano for CouchDB
 // =============================================================================
 const nanoDb = nano(config.dbFullpath)
-const minAmtDocScopeArr = mockPlugins.map(plugin => {
-  const pluginMinAmtDocScope = nanoDb.db.use(minAmtDbPrefix + plugin.pluginName)
-  return promisify(pluginMinAmtDocScope)
-})
+const dbSwap = nanoDb.db.use(config.dbName)
+promisify(dbSwap)
 
 // ROUTES FOR OUR API
 // =============================================================================
 const router = express.Router()
 
-router.get(
-  '/getMinimum/',
-  query('currencyPair').notEmpty(),
-  (req, res, next) => {
-    const errorArr = validationResult(req).array()
-    return errorArr.length > 0 ? next(ParamError) : next()
-  }
-)
+router.get('/getMinimum/', query('currencyPair').notEmpty(), (req, _, next) => {
+  const errorArr = validationResult(req).array()
+  return errorArr.length > 0 ? next(ParamError) : next()
+})
 
-router.get('/getMinimum/', async function (req, res, next) {
-  try {
-    const minAmountInfo = await checkDbAndFindMinAmount(
-      req.query.currencyPair,
-      minAmtDocScopeArr
-    )
-    res.json(minAmountInfo)
-  } catch (e) {
-    return next(e)
-  }
+router.get('/getMinimum/', function (req, res, next) {
+  checkDbAndFindMinAmount(req.query.currencyPair as string, dbSwap)
+    .then(minAmountInfo => res.json(minAmountInfo))
+    .catch(next)
 })
 
 // REGISTER OUR ROUTES -------------------------------
@@ -81,9 +67,7 @@ app.use((err, _req, res, _next) => {
 async function main(): Promise<void> {
   const { dbFullpath, httpPort, httpHost } = config
   if (cluster.isMaster) {
-    for (let i = 0; i < couchSchema.length; i++) {
-      await setupDatabase(dbFullpath, couchSchema[i]).catch(e => console.log(e))
-    }
+    await setupDatabase(dbFullpath, couchSchema).catch(e => console.log(e))
     forkChildren()
   } else {
     // Start the HTTP server:

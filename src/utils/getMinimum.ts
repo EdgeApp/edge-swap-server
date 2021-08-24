@@ -1,5 +1,4 @@
 import { asObject, asString } from 'cleaners'
-import { formatISO } from 'date-fns'
 import { asCouchDoc } from 'edge-server-tools'
 
 import { ErrorResponse, makeErrorResponse } from './errorResponse'
@@ -7,7 +6,6 @@ import { fetchSameKeyDocs } from './utils'
 
 interface MinAmountInfo {
   currencyPair: string
-  date: string
   minAmount: string
 }
 
@@ -66,17 +64,9 @@ export const findMinimum = (
 
 export const checkDbAndFindMinAmount = async (
   currencyPair: string,
-  minAmtDocScopeArr: any[]
+  dbSwap: any
 ): Promise<MinAmountInfo> => {
-  const currentUTCDate: string = formatISO(new Date(), {
-    representation: 'date'
-  }) // Variable for current UTC date using date-fns
-
-  const minAmountDocKey = currentUTCDate + ':' + currencyPair
-  const minAmountDocs = await fetchSameKeyDocs(
-    minAmountDocKey,
-    minAmtDocScopeArr
-  )
+  const minAmountDocs = await fetchSameKeyDocs(dbSwap)
   const cleanMinAmountData = cleanMinAmountDocs(minAmountDocs)
   const minAmountResult = findMinimum(cleanMinAmountData)
 
@@ -86,7 +76,6 @@ export const checkDbAndFindMinAmount = async (
 
   return {
     currencyPair,
-    date: currentUTCDate,
     minAmount: minAmountResult
   }
 }
