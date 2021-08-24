@@ -50,6 +50,7 @@ async function main(): Promise<void> {
       await Promise.all(swapPluginPromises)
     } catch (e) {
       console.log(e)
+    } finally {
       await snooze(ONE_DAY)
     }
   }
