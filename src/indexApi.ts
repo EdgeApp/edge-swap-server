@@ -4,7 +4,7 @@
 import cluster from 'cluster'
 import { forkChildren, setupDatabase } from 'edge-server-tools'
 import express from 'express'
-import { query, validationResult } from 'express-validator'
+// import { query, validationResult } from 'express-validator'
 import http from 'http'
 import nano from 'nano'
 import promisify from 'promisify-node'
@@ -20,10 +20,16 @@ const RouteError: ErrorResponse = makeErrorResponse(
   'Endpoint not found'
 )
 
-const ParamError: ErrorResponse = makeErrorResponse(
+// const ParamError: ErrorResponse = makeErrorResponse(
+//   'bad_request',
+//   400,
+//   'Missing query params'
+// )
+
+const SwapInfoError: ErrorResponse = makeErrorResponse(
   'bad_request',
   400,
-  'Missing query params'
+  'Unable to find swap information'
 )
 
 // call the packages we need
@@ -39,13 +45,21 @@ promisify(dbSwap)
 // =============================================================================
 const router = express.Router()
 
-router.get('/getMinimum/', query('currencyPair').notEmpty(), (req, _, next) => {
-  const errorArr = validationResult(req).array()
-  return errorArr.length > 0 ? next(ParamError) : next()
+// router.get('/getMinimum/', query('currencyPair').notEmpty(), (req, _, next) => {
+//   const errorArr = validationResult(req).array()
+//   return errorArr.length > 0 ? next(ParamError) : next()
+// })
+
+router.get('/getSwapInfo/:plugin', function (req, res, next) {
+  const { plugin } = req.params
+  dbSwap
+    .get(plugin)
+    .then(response => res.json(response.data))
+    .catch(next(SwapInfoError))
 })
 
-router.get('/getMinimum/', function (req, res, next) {
-  checkDbAndFindMinAmount(req.query.currencyPair as string, dbSwap)
+router.get('/getSwapInfo/', function (req, res, next) {
+  checkDbAndFindMinAmount(dbSwap)
     .then(minAmountInfo => res.json(minAmountInfo))
     .catch(next)
 })
