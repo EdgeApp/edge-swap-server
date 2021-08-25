@@ -4,8 +4,11 @@ import { config } from './config'
 
 export const couchSchema: DatabaseSetup = {
   name: config.dbName,
-  documents: Object.keys(config.plugins).reduce(
-    (res, pluginName) => ({ ...res, [pluginName]: {} }),
+  templates: Object.keys(config.plugins).reduce(
+    (res, pluginName) =>
+      typeof config.plugins[pluginName] === 'object'
+        ? { ...res, [pluginName]: {} }
+        : res,
     {}
   )
 }

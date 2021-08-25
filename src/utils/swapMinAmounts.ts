@@ -100,8 +100,7 @@ export async function swapMinAmounts(
         START_USD_AMOUNT,
         endUsdAmount.toFixed(0)
       )
-      const bigMinNative = Big(minNative)
-      minAmounts[currencyPair] = bigMinNative
+      minAmounts[currencyPair] = Big(minNative)
         .div(bigMultiplier)
         .toFixed(PRECISION)
     } catch (e) {

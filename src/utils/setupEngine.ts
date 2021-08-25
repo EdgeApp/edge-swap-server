@@ -47,7 +47,7 @@ export async function setupEngine(): Promise<AccountInfo> {
   await Promise.all(enablePluginPromises)
   // Create a map with all the plugins with values set to true
   const plugins = Object.keys(account.swapConfig).reduce(
-    (map, pluginName) => ({ ...map, [pluginName.toLowerCase()]: true }),
+    (map, pluginName) => ({ ...map, [pluginName]: true }),
     {}
   )
   // Prefixed Currency Pair array for the Rate server request
