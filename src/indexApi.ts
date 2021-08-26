@@ -1,6 +1,7 @@
 // BASE SETUP
 // =============================================================================
 
+import { asArray, asString } from 'cleaners'
 import cluster from 'cluster'
 import { forkChildren, setupDatabase } from 'edge-server-tools'
 import express from 'express'
@@ -12,7 +13,9 @@ import promisify from 'promisify-node'
 import { config } from './utils/config'
 import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
-import { checkDbAndFindMinAmount } from './utils/getMinimum'
+import { getPluginSwapInfo } from './utils/getMinimum'
+
+const asPluginList = asArray(asString)
 
 const BodyParseError: ErrorResponse = makeErrorResponse(
   'bad_query',
@@ -58,21 +61,35 @@ const router = express.Router()
 
 router.get('/getSwapInfo/:plugin', function (req, res, next) {
   const { plugin } = req.params
-  dbSwap
-    .get(plugin)
-    .then(response => res.json(response.data))
-    .catch(next(SwapInfoError))
+
+  getPluginSwapInfo(dbSwap, [plugin])
+    .then(swapInfo => {
+      res.json(swapInfo[plugin])
+    })
+    .catch(() => next(SwapInfoError))
 })
 
 router.get('/getSwapInfo/', function (req, res, next) {
-  checkDbAndFindMinAmount(dbSwap)
-    .then(minAmountInfo => res.json(minAmountInfo))
+  const swapPlugins = Object.keys(config.plugins).filter(
+    plugin => typeof config.plugins[plugin] === 'object'
+  )
+
+  getPluginSwapInfo(dbSwap, swapPlugins)
+    .then(swapInfo => res.json(swapInfo))
     .catch(next)
 })
 
 router.post('/getSwapInfo', function (req, res, next) {
-  console.log(req.body)
-  res.json(req.body)
+  let pluginList
+  try {
+    pluginList = asPluginList(req.body)
+  } catch {
+    return next(SwapInfoError)
+  }
+
+  getPluginSwapInfo(dbSwap, pluginList)
+    .then(swapInfo => res.json(swapInfo))
+    .catch(() => next(SwapInfoError))
 })
 
 // REGISTER OUR ROUTES -------------------------------

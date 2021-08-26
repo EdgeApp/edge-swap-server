@@ -2,7 +2,6 @@ import { asObject, asString } from 'cleaners'
 import { asCouchDoc } from 'edge-server-tools'
 import { DB } from 'nano'
 
-import { config } from './config'
 // import { ErrorResponse, makeErrorResponse } from './errorResponse'
 
 // interface MinAmountInfo {
@@ -28,13 +27,16 @@ const asCouchSwapInfoData = asCouchDoc(asSwapInfoData)
 //   'Data for currencyPair not found'
 // )
 
-export const fetchSwapInfoDocs = async (database: DB): Promise<any[]> => {
+export const fetchSwapInfoDocs = async (
+  database: DB,
+  plugins: string[]
+): Promise<any[]> => {
   // Array of promises to get the documents of the same key per database
-  const docPromisesArr = Object.keys(config.plugins)
-    .filter(plugin => typeof config.plugins[plugin] === 'object')
-    .map(async pluginName => database.get(pluginName))
+  const docPromisesArr = plugins.map(async pluginName =>
+    database.get(pluginName)
+  )
   // Capture the result of each promise, including whether it was fulfilled or rejected
-  return await Promise.allSettled(docPromisesArr)
+  return await Promise.all(docPromisesArr)
 }
 
 export const cleanSwapInfoDocs = (docs: any[]): SwapInfo => {
@@ -43,7 +45,7 @@ export const cleanSwapInfoDocs = (docs: any[]): SwapInfo => {
       const {
         id,
         doc: { data }
-      } = asCouchSwapInfoData(currentDoc.value)
+      } = asCouchSwapInfoData(currentDoc)
       return { ...res, [id]: data }
     } catch {
       return res
@@ -75,8 +77,11 @@ export const cleanSwapInfoDocs = (docs: any[]): SwapInfo => {
 //   return minAmountFloat.toString()
 // }
 
-export const checkDbAndFindMinAmount = async (dbSwap: any): Promise<any> => {
-  const swapInfoDocs = await fetchSwapInfoDocs(dbSwap)
+export const getPluginSwapInfo = async (
+  dbSwap: any,
+  plugins: string[]
+): Promise<SwapInfo> => {
+  const swapInfoDocs = await fetchSwapInfoDocs(dbSwap, plugins)
   const cleanSwapInfoData = cleanSwapInfoDocs(swapInfoDocs)
   // const minAmountResult = findMinimum(cleanSwapInfoData)
 
