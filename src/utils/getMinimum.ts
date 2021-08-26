@@ -31,11 +31,9 @@ export const fetchSwapInfoDocs = async (
   database: DB,
   plugins: string[]
 ): Promise<any[]> => {
-  // Array of promises to get the documents of the same key per database
   const docPromisesArr = plugins.map(async pluginName =>
     database.get(pluginName)
   )
-  // Capture the result of each promise, including whether it was fulfilled or rejected
   return await Promise.all(docPromisesArr)
 }
 
@@ -82,12 +80,10 @@ export const getPluginSwapInfo = async (
   plugins: string[]
 ): Promise<SwapInfo> => {
   const swapInfoDocs = await fetchSwapInfoDocs(dbSwap, plugins)
-  const cleanSwapInfoData = cleanSwapInfoDocs(swapInfoDocs)
+  return cleanSwapInfoDocs(swapInfoDocs)
   // const minAmountResult = findMinimum(cleanSwapInfoData)
 
   // if (typeof minAmountResult !== 'string') {
   //   throw minAmountResult // minAmountResult is equal to CurrencyPairDataError
   // }
-
-  return cleanSwapInfoData
 }
