@@ -14,6 +14,12 @@ import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
 import { checkDbAndFindMinAmount } from './utils/getMinimum'
 
+const BodyParseError: ErrorResponse = makeErrorResponse(
+  'bad_query',
+  400,
+  'Error parsing body data'
+)
+
 const RouteError: ErrorResponse = makeErrorResponse(
   'bad_query',
   404,
@@ -64,7 +70,17 @@ router.get('/getSwapInfo/', function (req, res, next) {
     .catch(next)
 })
 
+router.post('/getSwapInfo', function (req, res, next) {
+  console.log(req.body)
+  res.json(req.body)
+})
+
 // REGISTER OUR ROUTES -------------------------------
+// configure app to parse incoming requests with JSON payloads and return 400 error if body is not JSON
+app.use(express.json({ limit: '50mb' }))
+app.use((err, _req, _res, next) => next(err != null ? BodyParseError : null))
+// Parse the url string
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
 // Add router to the app with all of our routes prefixed with /v1
 app.use('/v1', router)
 // 404 Error Route
