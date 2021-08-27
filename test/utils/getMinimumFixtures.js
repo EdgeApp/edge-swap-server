@@ -1,105 +1,85 @@
 export const fixture = {
-  cleanMinAmountDocs: [
+  cleanSwapInfoDocs: [
     {
       testDescription:
-        'Returns an array of length 2 for an input of an array of length 3 where two of the elements contain a minAmount key inside the data object whose values are strings',
+        'Returns an object with two keys for an input array whose values in the data key are objects with values of strings',
       inputArgs: [
         {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { minAmount: '1' }
+          _id: 'plugin1',
+          _rev: '',
+          data: {
+            BTC_ETH: '1',
+            ETH_BTC: '2'
           }
         },
         {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { maxAmount: '0' }
-          }
-        },
-        {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { minAmount: '0.5' }
-          }
+          _id: 'plugin2',
+          _rev: '',
+          data: ['3', '4']
         }
       ],
       outputType: 'object',
-      expectedOutput: [{ minAmount: '1' }, { minAmount: '0.5' }]
+      expectedOutput: {
+        plugin1: {
+          BTC_ETH: '1',
+          ETH_BTC: '2'
+        },
+        plugin2: {
+          0: '3',
+          1: '4'
+        }
+      }
     },
     {
       testDescription:
-        'Returns an empty array for an input of an array of rejected promises',
+        'Returns an empty object for an input array whose values in the data key are not objects with only values of strings',
       inputArgs: [
         {
-          status: 'rejected',
-          reason: 'Error: an error'
+          _id: 'plugin1',
+          _rev: '',
+          data: true
         },
         {
-          status: 'rejected',
-          reason: 'Error: an error'
+          _id: 'plugin2',
+          _rev: '',
+          data: 1
+        },
+        {
+          _id: 'plugin3',
+          _rev: '',
+          data: null
+        },
+        {
+          _id: 'plugin4',
+          _rev: '',
+          data: undefined
+        },
+        {
+          _id: 'plugin5',
+          _rev: '',
+          data: [true, 1, null, undefined, '']
+        },
+        {
+          _id: 'plugin6',
+          _rev: '',
+          data: { key1: true, key2: 1, key3: null, key4: undefined, key5: '' }
         }
       ],
       outputType: 'object',
-      expectedOutput: []
+      expectedOutput: {}
     },
     {
-      testDescription: 'Returns an empty array for an input of an empty array',
+      testDescription: 'Returns an empty object for an input of an empty array',
       inputArgs: [],
       outputType: 'object',
-      expectedOutput: []
+      expectedOutput: {}
     },
     {
       testDescription:
-        'Returns an empty array for an input of an array where the value of each minAmount is not a string',
-      inputArgs: [
-        {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { minAmount: 1 }
-          }
-        },
-        {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { maxAmount: true }
-          }
-        },
-        {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { minAmount: null }
-          }
-        },
-        {
-          status: 'fulfilled',
-          value: {
-            _id: '2021-07-14:BTC_ETH',
-            _rev: '',
-            data: { minAmount: undefined }
-          }
-        }
-      ],
-      outputType: 'object',
-      expectedOutput: []
-    },
-    {
-      testDescription:
-        'Returns an empty array for an input of an array of different primitive data types',
+        'Returns an empty object for an input of an array of different primitive data types',
       inputArgs: ['hello', 5, null, undefined, false],
       outputType: 'object',
-      expectedOutput: []
+      expectedOutput: {}
     },
     {
       testDescription: 'Throws a TypeError for an input of an empty object',
@@ -114,136 +94,6 @@ export const fixture = {
     {
       testDescription: 'Throws a TypeError for an input that is a string',
       inputArgs: 'hello',
-      outputType: 'TypeError'
-    }
-  ],
-  findMinimum: [
-    {
-      testDescription:
-        'Returns a string containing a valid finite number for an input of an array of length 4 whose elements contain keys for minAmount with values that are strings',
-      inputArgs: [
-        { minAmount: '0.5' },
-        { minAmount: '2' },
-        { minAmount: '0.25' },
-        { minAmount: '1' }
-      ],
-      outputType: 'string',
-      expectedOutput: '0.25'
-    },
-    {
-      testDescription:
-        'Returns a string containing a valid finite number for an input of an array of length 5 whose elements contain keys for minAmount with values that are numbers, some of which are not finite, or less than or equal to zero',
-      inputArgs: [
-        { minAmount: -Infinity },
-        { minAmount: NaN },
-        { minAmount: 0.25 },
-        { minAmount: Infinity },
-        { minAmount: -1 },
-        { minAmount: 0 }
-      ],
-      outputType: 'string',
-      expectedOutput: '0.25'
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an empty array',
-      inputArgs: [],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an array with a single element whose minAmount is a string containing -Infinity',
-      inputArgs: [{ minAmount: '-Infinity' }],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an array with a single element whose minAmount is a string containing Infinity',
-      inputArgs: [{ minAmount: 'Infinity' }],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an array with a single element whose minAmount is a string containing 0 (zero)',
-      inputArgs: [{ minAmount: '0' }],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an array with a single element whose minAmount is a string containing negative number',
-      inputArgs: [{ minAmount: '-1' }],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an array with a single element whose minAmount is a string that does not contain a valid number',
-      inputArgs: [{ minAmount: 'hello' }],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription:
-        'Returns a CurrencyPairDataError for an input of an array with where the minAmount of each element is not a string or a number',
-      inputArgs: [
-        { minAmount: null },
-        { minAmount: undefined },
-        { minAmount: true }
-      ],
-      outputType: 'error',
-      expectedOutput: {
-        message: 'Data for currencyPair not found',
-        errorCode: 404,
-        errorType: 'not_found'
-      }
-    },
-    {
-      testDescription: 'Throws a TypeError for an input of an empty object',
-      inputArgs: {},
-      outputType: 'TypeError'
-    },
-    {
-      testDescription: 'Throws a TypeError for an input of a null',
-      inputArgs: null,
-      outputType: 'TypeError'
-    },
-    {
-      testDescription: 'Throws a TypeError for an input of a string',
-      inputArgs: 'hello',
-      outputType: 'TypeError'
-    },
-    {
-      testDescription:
-        'Throws a TypeError for an input of an array of different primitive data types',
-      inputArgs: ['hello', 5, null, undefined, false],
       outputType: 'TypeError'
     }
   ]
