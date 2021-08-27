@@ -29,11 +29,11 @@ const RouteError: ErrorResponse = makeErrorResponse(
   'Endpoint not found'
 )
 
-// const ParamError: ErrorResponse = makeErrorResponse(
-//   'bad_request',
-//   400,
-//   'Missing query params'
-// )
+const PluginListError: ErrorResponse = makeErrorResponse(
+  'bad_request',
+  400,
+  'Invalid data for list of plugins'
+)
 
 const SwapInfoError: ErrorResponse = makeErrorResponse(
   'bad_request',
@@ -84,7 +84,7 @@ router.post('/getSwapInfo', function (req, res, next) {
   try {
     pluginList = asPluginList(req.body)
   } catch {
-    return next(SwapInfoError)
+    return next(PluginListError)
   }
 
   getPluginSwapInfo(dbSwap, pluginList)
