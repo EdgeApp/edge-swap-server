@@ -2,6 +2,8 @@ import { asObject, asString } from 'cleaners'
 import { asCouchDoc } from 'edge-server-tools'
 import { DB } from 'nano'
 
+import { config } from './config'
+
 // import { ErrorResponse, makeErrorResponse } from './errorResponse'
 
 // interface MinAmountInfo {
@@ -13,10 +15,12 @@ const asSwapInfoData = asObject({
   data: asObject(asString)
 })
 
-interface SwapInfo {
-  [pluginName: string]: {
-    [currencyPair: string]: string
-  }
+interface PluginSwapInfo {
+  [currencyPair: string]: string
+}
+
+interface SwapInfos {
+  [pluginName: string]: PluginSwapInfo
 }
 
 const asCouchSwapInfoData = asCouchDoc(asSwapInfoData)
@@ -37,14 +41,34 @@ export const fetchSwapInfoDocs = async (
   return await Promise.all(docPromisesArr)
 }
 
-export const cleanSwapInfoDocs = (docs: any[]): SwapInfo => {
+const filterPluginSwapInfo = (
+  data: PluginSwapInfo,
+  currencies: string[]
+): PluginSwapInfo => {
+  return Object.keys(data).reduce((res, currencyPair) => {
+    const fromCurrency = currencyPair.split('_')[0]
+    return currencies.includes(fromCurrency)
+      ? { ...res, [currencyPair]: data[currencyPair] }
+      : res
+  }, {})
+}
+
+export const cleanSwapInfoDocs = (
+  docs: any[],
+  currencies: string[] | null
+): SwapInfos => {
   return docs.reduce((res, currentDoc) => {
     try {
       const {
         id,
         doc: { data }
       } = asCouchSwapInfoData(currentDoc)
-      return { ...res, [id]: data }
+      return currencies === null
+        ? { ...res, [id]: data }
+        : {
+            ...res,
+            [id]: filterPluginSwapInfo(data, currencies)
+          }
     } catch {
       return res
     }
@@ -77,10 +101,14 @@ export const cleanSwapInfoDocs = (docs: any[]): SwapInfo => {
 
 export const getPluginSwapInfo = async (
   dbSwap: any,
-  plugins: string[]
-): Promise<SwapInfo> => {
+  plugins: string[] | null,
+  currencies: string[] | null
+): Promise<SwapInfos> => {
+  plugins ??= Object.keys(config.plugins).filter(
+    plugin => typeof config.plugins[plugin] === 'object'
+  )
   const swapInfoDocs = await fetchSwapInfoDocs(dbSwap, plugins)
-  return cleanSwapInfoDocs(swapInfoDocs)
+  return cleanSwapInfoDocs(swapInfoDocs, currencies)
   // const minAmountResult = findMinimum(cleanSwapInfoData)
 
   // if (typeof minAmountResult !== 'string') {

@@ -1,11 +1,11 @@
+// indexAuth.js
 // BASE SETUP
 // =============================================================================
 
-import { asArray, asString } from 'cleaners'
+import { asArray, asEither, asNull, asString } from 'cleaners'
 import cluster from 'cluster'
 import { forkChildren, setupDatabase } from 'edge-server-tools'
 import express from 'express'
-// import { query, validationResult } from 'express-validator'
 import http from 'http'
 import nano from 'nano'
 import promisify from 'promisify-node'
@@ -15,7 +15,7 @@ import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
 import { getPluginSwapInfo } from './utils/getMinimum'
 
-const asPluginList = asArray(asString)
+const asStringListOrNull = asEither(asArray(asString), asNull)
 
 const BodyParseError: ErrorResponse = makeErrorResponse(
   'bad_query',
@@ -29,10 +29,10 @@ const RouteError: ErrorResponse = makeErrorResponse(
   'Endpoint not found'
 )
 
-const PluginListError: ErrorResponse = makeErrorResponse(
+const SwapInfoParamError: ErrorResponse = makeErrorResponse(
   'bad_request',
   400,
-  'Invalid data for list of plugins'
+  'Invalid params for plugins and/or currencies'
 )
 
 const SwapInfoError: ErrorResponse = makeErrorResponse(
@@ -54,40 +54,16 @@ promisify(dbSwap)
 // =============================================================================
 const router = express.Router()
 
-// router.get('/getMinimum/', query('currencyPair').notEmpty(), (req, _, next) => {
-//   const errorArr = validationResult(req).array()
-//   return errorArr.length > 0 ? next(ParamError) : next()
-// })
-
-router.get('/getSwapInfo/:plugin', function (req, res, next) {
-  const { plugin } = req.params
-
-  getPluginSwapInfo(dbSwap, [plugin])
-    .then(swapInfo => {
-      res.json(swapInfo[plugin])
-    })
-    .catch(() => next(SwapInfoError))
-})
-
-router.get('/getSwapInfo/', function (req, res, next) {
-  const swapPlugins = Object.keys(config.plugins).filter(
-    plugin => typeof config.plugins[plugin] === 'object'
-  )
-
-  getPluginSwapInfo(dbSwap, swapPlugins)
-    .then(swapInfo => res.json(swapInfo))
-    .catch(next)
-})
-
 router.post('/getSwapInfo', function (req, res, next) {
-  let pluginList
+  let pluginId, currencies
   try {
-    pluginList = asPluginList(req.body)
-  } catch {
-    return next(PluginListError)
+    pluginId = asStringListOrNull(req.body.pluginId)
+    currencies = asStringListOrNull(req.body.currencies)
+  } catch (e) {
+    return next(SwapInfoParamError)
   }
 
-  getPluginSwapInfo(dbSwap, pluginList)
+  getPluginSwapInfo(dbSwap, pluginId, currencies)
     .then(swapInfo => res.json(swapInfo))
     .catch(() => next(SwapInfoError))
 })
