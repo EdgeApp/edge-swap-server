@@ -13,7 +13,7 @@ import promisify from 'promisify-node'
 import { config } from './utils/config'
 import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
-import { getPluginSwapInfo } from './utils/getMinimum'
+import { getSwapInfo } from './utils/getMinimum'
 
 const asStringListOrNull = asEither(asArray(asString), asNull)
 
@@ -32,7 +32,7 @@ const RouteError: ErrorResponse = makeErrorResponse(
 const SwapInfoParamError: ErrorResponse = makeErrorResponse(
   'bad_request',
   400,
-  'Invalid params for plugins and/or currencies'
+  'Invalid params for plugins'
 )
 
 const SwapInfoError: ErrorResponse = makeErrorResponse(
@@ -63,7 +63,7 @@ router.post('/getSwapInfo', function (req, res, next) {
     return next(SwapInfoParamError)
   }
 
-  getPluginSwapInfo(dbSwap, pluginId, currencies)
+  getSwapInfo(dbSwap, pluginId, currencies)
     .then(swapInfo => res.json(swapInfo))
     .catch(() => next(SwapInfoError))
 })
