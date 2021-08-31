@@ -1,0 +1,15 @@
+{
+  "apps": [{
+    "name": "edge-swap-server-engine",
+    "script": "lib/indexEngine.js",
+    "instances": "max",
+    "error_file": "./logs/engine/error.log",
+    "out_file": "./logs/engine/log.log"
+  },{
+      "name": "edge-swap-server-api",
+      "script": "lib/indexApi.js",
+      "instances": "max",
+      "error_file": "./logs/api/Error.log",
+      "out_file": "./logs/api/log.log"
+  }]
+}

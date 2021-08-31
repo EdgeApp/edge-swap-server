@@ -80,7 +80,13 @@ app.use((err, _req, res, _next) => {
 
 async function main(): Promise<void> {
   const { dbFullpath, httpPort, httpHost } = config
-  if (cluster.isMaster) {
+  if (process.env?.pm_id != null && process.env.NODE_APP_INSTANCE === '0') {
+    // running in pm2
+    for (let i = 0; i < couchSchema.length; i++) {
+      await setupDatabase(dbFullpath, couchSchema[i]).catch(e => console.log(e))
+    }
+  } else if (cluster.isMaster) {
+    // Not running in pm2
     for (let i = 0; i < couchSchema.length; i++) {
       await setupDatabase(dbFullpath, couchSchema[i]).catch(e => console.log(e))
     }
