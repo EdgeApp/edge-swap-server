@@ -82,7 +82,5 @@ export const getSwapInfo = async (
           filterSwapInfoData(pluginSwapInfo, currencies)
         )
 
-  const swapInfoMins = findSwapInfoMins(filteredSwapInfo)
-
-  return swapInfoMins
+  return findSwapInfoMins(filteredSwapInfo)
 }
