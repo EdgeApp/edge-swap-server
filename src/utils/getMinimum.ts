@@ -53,11 +53,8 @@ export const findSwapInfoMins = (swapInfos: SwapInfo[]): SwapInfo => {
   const swapInfoMins = {}
   swapInfos.forEach(swapInfo => {
     Object.keys(swapInfo).forEach(currencyPair => {
-      const currentMin = Big(swapInfoMins[currencyPair])
-      if (
-        swapInfoMins[currencyPair] == null ||
-        currentMin.gt(swapInfo[currencyPair])
-      ) {
+      const currentMin = swapInfoMins[currencyPair]
+      if (currentMin == null || Big(currentMin).gt(swapInfo[currencyPair])) {
         swapInfoMins[currencyPair] = swapInfo[currencyPair]
       }
     })
