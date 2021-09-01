@@ -9,11 +9,11 @@ const asSwapInfoData = asObject({
   data: asObject(asString)
 })
 
+const asCouchSwapInfoData = asCouchDoc(asSwapInfoData)
+
 interface SwapInfo {
   [currencyPair: string]: string
 }
-
-const asCouchSwapInfoData = asCouchDoc(asSwapInfoData)
 
 export const fetchSwapInfoDocs = async (
   database: DB,
@@ -53,9 +53,14 @@ export const findSwapInfoMins = (swapInfos: SwapInfo[]): SwapInfo => {
   const swapInfoMins = {}
   swapInfos.forEach(swapInfo => {
     Object.keys(swapInfo).forEach(currencyPair => {
-      const currentMin = swapInfoMins[currencyPair]
-      if (currentMin == null || Big(currentMin).gt(swapInfo[currencyPair])) {
-        swapInfoMins[currencyPair] = swapInfo[currencyPair]
+      try {
+        const currentMin = swapInfoMins[currencyPair]
+        const bigPluginMin = Big(swapInfo[currencyPair])
+        if (currentMin == null || bigPluginMin.lt(currentMin)) {
+          swapInfoMins[currencyPair] = swapInfo[currencyPair]
+        }
+      } catch (e) {
+        console.log(e.message)
       }
     })
   })
