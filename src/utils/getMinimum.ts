@@ -1,92 +1,91 @@
+import Big from 'big.js'
 import { asObject, asString } from 'cleaners'
-import { formatISO } from 'date-fns'
 import { asCouchDoc } from 'edge-server-tools'
+import { DB } from 'nano'
 
-import { ErrorResponse, makeErrorResponse } from './errorResponse'
-import { fetchSameKeyDocs } from './utils'
+import { config } from './config'
 
-interface MinAmountInfo {
-  currencyPair: string
-  date: string
-  minAmount: string
-}
-
-const asMinAmountData = asObject({ minAmount: asString })
-
-const asMinAmountDocData = asObject({
-  data: asMinAmountData
+const asSwapInfoData = asObject({
+  data: asObject(asString)
 })
 
-const asCouchMinAmountDocData = asCouchDoc(asMinAmountDocData)
+const asCouchSwapInfoData = asCouchDoc(asSwapInfoData)
 
-const CurrencyPairDataError: ErrorResponse = makeErrorResponse(
-  'not_found',
-  404,
-  'Data for currencyPair not found'
-)
+interface SwapInfo {
+  [currencyPair: string]: string
+}
 
-export const cleanMinAmountDocs = (
-  docs: any[]
-): Array<ReturnType<typeof asMinAmountData>> => {
-  return docs.reduce((minAmountDocDataArr, currentDoc) => {
+export const fetchSwapInfoDocs = async (
+  database: DB,
+  plugins: string[]
+): Promise<any[]> => {
+  const docPromisesArr = plugins.map(async pluginName =>
+    database.get(pluginName)
+  )
+  return await Promise.all(docPromisesArr)
+}
+
+export const cleanSwapInfoDocs = (docs: any[]): SwapInfo[] => {
+  return docs.reduce((res, currentDoc) => {
     try {
       const {
         doc: { data }
-      } = asCouchMinAmountDocData(currentDoc.value)
-      return [...minAmountDocDataArr, data]
+      } = asCouchSwapInfoData(currentDoc)
+      return [...res, data]
     } catch {
-      return minAmountDocDataArr
+      return res
     }
   }, [])
 }
 
-export const findMinimum = (
-  minAmountDataArr: Array<ReturnType<typeof asMinAmountData>>
-): string | ErrorResponse => {
-  // Use 'reduce' to go through array of data objects and find the lowest minAmount amongst the plugins
-  const minAmountFloat = minAmountDataArr.reduce(
-    (currentMinAmount, currentMinAmountDataObj) => {
-      const pluginMinAmount = parseFloat(currentMinAmountDataObj.minAmount) // Grab the plugin's minAmount for the currencyPair
-      // If the plugin's minAmount is lower than currentMinAmount, update currentMinAmount
-      return pluginMinAmount < currentMinAmount && pluginMinAmount > 0
-        ? pluginMinAmount
-        : currentMinAmount
-    },
-    Infinity
-  ) // Start currentMinAmount at Infinity
-
-  // Check if minAmountFloat is not a finite number (Infinity, -Infinity, NaN)
-  if (!isFinite(minAmountFloat)) {
-    // No data could be found in the database, return an object with the error info
-    return CurrencyPairDataError
-  }
-
-  return minAmountFloat.toString()
+export const filterSwapInfoData = (
+  pluginSwapInfo: SwapInfo,
+  currencies: string[]
+): SwapInfo => {
+  return Object.keys(pluginSwapInfo).reduce((res, currencyPair) => {
+    return currencies.some(currency => currencyPair.includes(currency))
+      ? { ...res, [currencyPair]: pluginSwapInfo[currencyPair] }
+      : res
+  }, {})
 }
 
-export const checkDbAndFindMinAmount = async (
-  currencyPair: string,
-  minAmtDocScopeArr: any[]
-): Promise<MinAmountInfo> => {
-  const currentUTCDate: string = formatISO(new Date(), {
-    representation: 'date'
-  }) // Variable for current UTC date using date-fns
+export const findSwapInfoMins = (swapInfos: SwapInfo[]): SwapInfo => {
+  const swapInfoMins = {}
+  swapInfos.forEach(swapInfo => {
+    Object.keys(swapInfo).forEach(currencyPair => {
+      try {
+        const currentMin = swapInfoMins[currencyPair]
+        const bigPluginMin = Big(swapInfo[currencyPair])
+        if (currentMin == null || bigPluginMin.lt(currentMin)) {
+          swapInfoMins[currencyPair] = swapInfo[currencyPair]
+        }
+      } catch (e) {
+        console.log(e.message)
+      }
+    })
+  })
+  return swapInfoMins
+}
 
-  const minAmountDocKey = currentUTCDate + ':' + currencyPair
-  const minAmountDocs = await fetchSameKeyDocs(
-    minAmountDocKey,
-    minAmtDocScopeArr
-  )
-  const cleanMinAmountData = cleanMinAmountDocs(minAmountDocs)
-  const minAmountResult = findMinimum(cleanMinAmountData)
-
-  if (typeof minAmountResult !== 'string') {
-    throw minAmountResult // minAmountResult is equal to CurrencyPairDataError
+export const getSwapInfo = async (
+  dbSwap: any,
+  plugins: string[] | null,
+  currencies: string[] | null
+): Promise<SwapInfo> => {
+  if (plugins === null) {
+    plugins = Object.keys(config.plugins).filter(
+      plugin => typeof config.plugins[plugin] === 'object'
+    )
   }
+  const swapInfoDocs = await fetchSwapInfoDocs(dbSwap, plugins)
+  const cleanedSwapInfo = cleanSwapInfoDocs(swapInfoDocs)
 
-  return {
-    currencyPair,
-    date: currentUTCDate,
-    minAmount: minAmountResult
-  }
+  const filteredSwapInfo =
+    currencies === null
+      ? cleanedSwapInfo
+      : cleanedSwapInfo.map(pluginSwapInfo =>
+          filterSwapInfoData(pluginSwapInfo, currencies)
+        )
+
+  return findSwapInfoMins(filteredSwapInfo)
 }
