@@ -1,0 +1,15 @@
+services:
+  swapserver:
+    image: edge-swap-server:latest
+    volumes:
+      - type: bind
+        source: ./logs/
+        target: /usr/server/logs/
+      - type: bind
+        source: ./dockerConfig/serverConfig.json
+        target: /usr/server/serverConfig.json
+    container_name: edge-swap-server
+    ports:
+      - "8008:8008"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
