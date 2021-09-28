@@ -21,10 +21,7 @@ describe('binarySearch', () => {
 
       // Assert
       if (outputType === 'Error') {
-        return actualResultPromise.should.be.rejectedWith(
-          Error,
-          'Invalid start/end parameter(s)'
-        )
+        return actualResultPromise.should.be.rejectedWith(Error)
       } else if (outputType === 'TypeError') {
         return actualResultPromise.should.be.rejectedWith(TypeError)
       } else {

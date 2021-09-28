@@ -1,20 +1,27 @@
+// indexAuth.js
 // BASE SETUP
 // =============================================================================
 
+import { asArray, asEither, asNull, asString } from 'cleaners'
 import cluster from 'cluster'
 import { forkChildren, setupDatabase } from 'edge-server-tools'
-import { query, validationResult } from 'express-validator'
+import express from 'express'
+import http from 'http'
+import nano from 'nano'
+import promisify from 'promisify-node'
 
 import { config } from './utils/config'
-import { couchSchema, minAmtDbPrefix } from './utils/couchSchema'
+import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
-import { checkDbAndFindMinAmount } from './utils/getMinimum'
-import { mockPlugins } from './utils/mockPlugins'
+import { getSwapInfo } from './utils/getMinimum'
 
-const express = require('express')
-const http = require('http')
-const nano = require('nano')
-const promisify = require('promisify-node')
+const asStringListOrNull = asEither(asArray(asString), asNull)
+
+const BodyParseError: ErrorResponse = makeErrorResponse(
+  'bad_query',
+  400,
+  'Error parsing body data'
+)
 
 const RouteError: ErrorResponse = makeErrorResponse(
   'bad_query',
@@ -22,10 +29,16 @@ const RouteError: ErrorResponse = makeErrorResponse(
   'Endpoint not found'
 )
 
-const ParamError: ErrorResponse = makeErrorResponse(
+const SwapInfoParamError: ErrorResponse = makeErrorResponse(
   'bad_request',
   400,
-  'Missing query params'
+  'Invalid params for plugins'
+)
+
+const SwapInfoError: ErrorResponse = makeErrorResponse(
+  'bad_request',
+  400,
+  'Unable to find swap information'
 )
 
 // call the packages we need
@@ -34,37 +47,33 @@ const app = express()
 // Nano for CouchDB
 // =============================================================================
 const nanoDb = nano(config.dbFullpath)
-const minAmtDocScopeArr = mockPlugins.map(plugin => {
-  const pluginMinAmtDocScope = nanoDb.db.use(minAmtDbPrefix + plugin.pluginName)
-  return promisify(pluginMinAmtDocScope)
-})
+const dbSwap = nanoDb.db.use(config.dbName)
+promisify(dbSwap)
 
 // ROUTES FOR OUR API
 // =============================================================================
 const router = express.Router()
 
-router.get(
-  '/getMinimum/',
-  query('currencyPair').notEmpty(),
-  (req, res, next) => {
-    const errorArr = validationResult(req).array()
-    return errorArr.length > 0 ? next(ParamError) : next()
-  }
-)
-
-router.get('/getMinimum/', async function (req, res, next) {
+router.post('/getSwapInfo', function (req, res, next) {
+  let pluginId, currencies
   try {
-    const minAmountInfo = await checkDbAndFindMinAmount(
-      req.query.currencyPair,
-      minAmtDocScopeArr
-    )
-    res.json(minAmountInfo)
+    pluginId = asStringListOrNull(req.body.pluginId)
+    currencies = asStringListOrNull(req.body.currencies)
   } catch (e) {
-    return next(e)
+    return next(SwapInfoParamError)
   }
+
+  getSwapInfo(dbSwap, pluginId, currencies)
+    .then(swapInfo => res.json(swapInfo))
+    .catch(() => next(SwapInfoError))
 })
 
 // REGISTER OUR ROUTES -------------------------------
+// configure app to parse incoming requests with JSON payloads and return 400 error if body is not JSON
+app.use(express.json({ limit: '50mb' }))
+app.use((err, _req, _res, next) => next(err != null ? BodyParseError : null))
+// Parse the url string
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
 // Add router to the app with all of our routes prefixed with /v1
 app.use('/v1', router)
 // 404 Error Route
@@ -81,9 +90,7 @@ app.use((err, _req, res, _next) => {
 async function main(): Promise<void> {
   const { dbFullpath, httpPort, httpHost } = config
   if (cluster.isMaster) {
-    for (let i = 0; i < couchSchema.length; i++) {
-      await setupDatabase(dbFullpath, couchSchema[i]).catch(e => console.log(e))
-    }
+    await setupDatabase(dbFullpath, couchSchema).catch(e => console.log(e))
     forkChildren()
   } else {
     // Start the HTTP server:
