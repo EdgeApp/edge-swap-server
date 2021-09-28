@@ -2,7 +2,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './utils/config'
-import { fetchExchangeRates } from './utils/exchangeRate'
+import { fetchExchangeRates } from './utils/exchangeRate.old'
 import { setupEngine } from './utils/setupEngine'
 import {
   createBinarySwapQuote,
