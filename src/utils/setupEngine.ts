@@ -3,6 +3,7 @@ import {
   EdgeAccount,
   EdgeCurrencyWallet,
   EdgePluginMap,
+  EdgeRateHint,
   lockEdgeCorePlugins,
   makeEdgeContext
 } from 'edge-core-js'
@@ -16,7 +17,7 @@ interface AccountInfo {
   account: EdgeAccount
   wallets: EdgeCurrencyWallet[]
   plugins: EdgePluginMap<true>
-  pairs: Array<{ currency_pair: string }>
+  rateHints: EdgeRateHint[]
 }
 
 addEdgeCorePlugins(accountBasedPlugins)
@@ -50,9 +51,10 @@ export async function setupEngine(): Promise<AccountInfo> {
     (map, pluginName) => ({ ...map, [pluginName]: true }),
     {}
   )
-  // Prefixed Currency Pair array for the Rate server request
-  const pairs = wallets.map(wallet => ({
-    currency_pair: `${config.currencyPairPrefix}${wallet.currencyInfo.currencyCode}`
+  // Create an array of rate hints for the edgeRates plugin
+  const rateHints = wallets.map(wallet => ({
+    fromCurrency: config.currencyPrefix + config.fiatCode,
+    toCurrency: config.currencyPrefix + wallet.currencyInfo.currencyCode
   }))
-  return { account, wallets, plugins, pairs }
+  return { account, wallets, plugins, rateHints }
 }
