@@ -18,8 +18,8 @@ const {
   EDGE_APP_ID = '',
   EDGE_USERNAME = '',
   EDGE_PASSWORD = '',
-  EDGE_RATES_SERVER = 'https://rates1.edge.app',
-  CURRENCY_PAIR_PREFIX = 'iso:USD_'
+  CURRENCY_PREFIX = 'iso:',
+  FIAT_CODE = 'USD'
 } = process.env
 
 export const asSwapPlugin = asObject({
@@ -45,8 +45,8 @@ export const asConfig = asObject({
   appId: asOptional(asString, EDGE_APP_ID),
   username: asOptional(asString, EDGE_USERNAME),
   password: asOptional(asString, EDGE_PASSWORD),
-  ratesServerAddress: asOptional(asString, EDGE_RATES_SERVER),
-  currencyPairPrefix: asOptional(asString, CURRENCY_PAIR_PREFIX),
+  currencyPrefix: asOptional(asString, CURRENCY_PREFIX),
+  fiatCode: asOptional(asString, FIAT_CODE),
   plugins: asOptional(asPlugin, {})
 })
 

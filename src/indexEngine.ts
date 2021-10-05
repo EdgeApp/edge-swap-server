@@ -22,10 +22,10 @@ promisify(dbSwap)
 
 async function main(): Promise<void> {
   while (true) {
-    const { pairs, wallets, plugins, account } = await setupEngine()
+    const { account, wallets, plugins, rateHints } = await setupEngine()
     const swapQuote = createBinarySwapQuote(account)
     // Fetch exchange rates for wallets
-    const exchangeRates = await fetchExchangeRates(pairs)
+    const exchangeRates = await fetchExchangeRates(rateHints)
     // Create All the possible wallet pairs we have with the correct exchange rates
     const walletPairs = createCurrencyPairs(wallets, exchangeRates)
 
