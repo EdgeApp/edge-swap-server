@@ -1,8 +1,9 @@
 import Big from 'big.js'
-import { asObject, asString } from 'cleaners'
+import { asNumber, asObject, asString } from 'cleaners'
 import { asCouchDoc } from 'edge-server-tools'
 import { DB } from 'nano'
 
+import { hgetallAsync, updateCache } from '../updateCache'
 import { config } from './config'
 
 const asSwapInfoData = asObject({
@@ -11,7 +12,17 @@ const asSwapInfoData = asObject({
 
 const asCouchSwapInfoData = asCouchDoc(asSwapInfoData)
 
-interface SwapInfo {
+const asTimestampData = asObject({
+  data: asObject(asNumber)
+})
+
+const asCouchTimestampData = asCouchDoc(asTimestampData)
+
+export interface AllSwapInfo {
+  [pluginName: string]: SwapInfo
+}
+
+export interface SwapInfo {
   [currencyPair: string]: string
 }
 
@@ -25,17 +36,23 @@ export const fetchSwapInfoDocs = async (
   return await Promise.all(docPromisesArr)
 }
 
-export const cleanSwapInfoDocs = (docs: any[]): SwapInfo[] => {
+export const fetchSwapInfoCache = async (plugins: string[]): Promise<any[]> => {
+  const cachePromisesArr = plugins.map(pluginName => hgetallAsync(pluginName))
+  return await Promise.all(cachePromisesArr)
+}
+
+export const cleanSwapInfoDocs = (docs: any[]): AllSwapInfo => {
   return docs.reduce((res, currentDoc) => {
     try {
       const {
+        id,
         doc: { data }
       } = asCouchSwapInfoData(currentDoc)
-      return [...res, data]
+      return { ...res, [id]: data }
     } catch {
       return res
     }
-  }, [])
+  }, {})
 }
 
 export const filterSwapInfoData = (
@@ -70,20 +87,36 @@ export const findSwapInfoMins = (swapInfos: SwapInfo[]): SwapInfo => {
 export const getSwapInfo = async (
   dbSwap: any,
   plugins: string[] | null,
-  currencies: string[] | null
+  currencies: string[] | null,
+  cacheNeedsUpdate: boolean
 ): Promise<SwapInfo> => {
   if (plugins === null) {
     plugins = Object.keys(config.plugins).filter(
       plugin => typeof config.plugins[plugin] === 'object'
     )
   }
-  const swapInfoDocs = await fetchSwapInfoDocs(dbSwap, plugins)
-  const cleanedSwapInfo = cleanSwapInfoDocs(swapInfoDocs)
+  let swapInfoArr
+  if (cacheNeedsUpdate) {
+    const swapInfoDocs = await fetchSwapInfoDocs(dbSwap, plugins)
+    const cleanedSwapInfo = cleanSwapInfoDocs(swapInfoDocs)
+    swapInfoArr = Object.values(cleanedSwapInfo)
+
+    const timestampDoc = await dbSwap.get('-timestamp')
+    const {
+      doc: {
+        data: { timestamp }
+      }
+    } = asCouchTimestampData(timestampDoc)
+
+    await updateCache(cleanedSwapInfo, timestamp)
+  } else {
+    swapInfoArr = await fetchSwapInfoCache(plugins)
+  }
 
   const filteredSwapInfo =
     currencies === null
-      ? cleanedSwapInfo
-      : cleanedSwapInfo.map(pluginSwapInfo =>
+      ? swapInfoArr
+      : swapInfoArr.map(pluginSwapInfo =>
           filterSwapInfoData(pluginSwapInfo, currencies)
         )
 
