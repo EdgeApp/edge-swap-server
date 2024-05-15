@@ -47,10 +47,17 @@ async function main(): Promise<void> {
     })
 
     try {
-      await Promise.all(swapPluginPromises)
+      const timestampDoc = await dbSwap.get('-timestamp')
+      const timestamp = Date.now() / 1000
+      const updateTimestampDoc = await dbSwap.insert({
+        ...timestampDoc,
+        data: { timestamp }
+      })
+      await Promise.all([...swapPluginPromises, updateTimestampDoc])
     } catch (e) {
       console.log(e)
     } finally {
+      console.log('SNOOZING ***********************************')
       await snooze(ONE_DAY)
     }
   }

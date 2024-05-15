@@ -10,10 +10,15 @@ import http from 'http'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
+import { existsAsync, hgetallAsync, TIMESTAMP_KEY } from './updateCache'
 import { config } from './utils/config'
 import { couchSchema } from './utils/couchSchema'
 import { ErrorResponse, makeErrorResponse } from './utils/errorResponse'
 import { getSwapInfo } from './utils/getMinimum'
+
+const SECONDS_IN_DAY = 24 * 60 * 60
+
+const REDIS_KEY_MISSING = 0
 
 const asStringListOrNull = asEither(asArray(asString), asNull)
 
@@ -50,11 +55,9 @@ const nanoDb = nano(config.dbFullpath)
 const dbSwap = nanoDb.db.use(config.dbName)
 promisify(dbSwap)
 
-// ROUTES FOR OUR API
+// Middleware
 // =============================================================================
-const router = express.Router()
-
-router.post('/getSwapInfo', function (req, res, next) {
+const cleanReqBody = (req, res, next): void => {
   let pluginId, currencies
   try {
     pluginId = asStringListOrNull(req.body.pluginId)
@@ -62,11 +65,51 @@ router.post('/getSwapInfo', function (req, res, next) {
   } catch (e) {
     return next(SwapInfoParamError)
   }
+  Object.assign(res.locals, { pluginId, currencies })
+  next()
+}
 
-  getSwapInfo(dbSwap, pluginId, currencies)
-    .then(swapInfo => res.json(swapInfo))
-    .catch(() => next(SwapInfoError))
-})
+const cacheCheck = async (req, res, next): Promise<void> => {
+  const plugins = Object.keys(config.plugins).filter(
+    plugin => typeof config.plugins[plugin] === 'object'
+  )
+  const pluginKeysExistPromises = plugins.map(pluginName =>
+    existsAsync(pluginName)
+  )
+  const pluginKeysExist = await Promise.all(pluginKeysExistPromises)
+  const timestampKeyExists = await existsAsync(TIMESTAMP_KEY)
+  const redisTimestamp =
+    timestampKeyExists !== REDIS_KEY_MISSING
+      ? (await hgetallAsync(TIMESTAMP_KEY)).timestamp
+      : Date.now() / 1000
+  const currentTime = Date.now() / 1000
+  res.locals.cacheNeedsUpdate =
+    pluginKeysExist.includes(REDIS_KEY_MISSING) ||
+    timestampKeyExists === REDIS_KEY_MISSING ||
+    currentTime - redisTimestamp > SECONDS_IN_DAY
+  next()
+}
+
+const fetchSwapInfo = async (req, res, next): Promise<void> => {
+  const { pluginId, currencies, cacheNeedsUpdate } = res.locals
+  try {
+    const swapInfo = await getSwapInfo(
+      dbSwap,
+      pluginId,
+      currencies,
+      cacheNeedsUpdate
+    )
+    res.json(swapInfo)
+  } catch {
+    return next(SwapInfoError)
+  }
+}
+
+// ROUTES FOR OUR API
+// =============================================================================
+const router = express.Router()
+
+router.post('/getSwapInfo', [cleanReqBody, cacheCheck, fetchSwapInfo])
 
 // REGISTER OUR ROUTES -------------------------------
 // configure app to parse incoming requests with JSON payloads and return 400 error if body is not JSON
